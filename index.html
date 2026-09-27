@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VERRO — тренируйся свободно</title>
+<meta name="description" content="VERRO 3.1 — офлайн-трекер тренировок. GPS телефона, блютуз-датчики, режим без GPS, 3D-реплеи, голосовой тренер. Без аккаунтов и облаков.">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="%23063220"/><path d="M16 44 L32 20 L48 44 Z" fill="%233DF29B"/></svg>'>
+<style>
+:root{
+  --text:#F5FBF7;
+  --muted:rgba(245,251,247,.6);
+  --dim:rgba(245,251,247,.36);
+  --mint:#3DF29B;
+  --gold:#FFD641;
+  --red:#FF6B5A;
+  --grad:linear-gradient(135deg,#3EE894,#189459);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"SF Pro Display","SF Pro Text","Segoe UI",system-ui,Roboto,Arial,sans-serif;
+  background:#000;color:var(--text);line-height:1.55;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased}
+::selection{background:rgba(61,242,155,.35)}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:9px}
+::-webkit-scrollbar-track{background:#000}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:rgba(61,242,155,.4)}
+:focus-visible{outline:2px solid var(--mint);outline-offset:3px;border-radius:8px}
+section{scroll-margin-top:96px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 22px}
+
+/* ==================================================
+   LIQUID GLASS · тёмная серия (фон строго чёрный,
+   стекло читается гранями, подсветкой и бликами)
+   ================================================== */
+.glass{position:relative;
+  background:linear-gradient(160deg,rgba(255,255,255,.085),rgba(255,255,255,.018) 38%,rgba(255,255,255,.05));
+  box-shadow:0 18px 44px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -1px 0 rgba(255,255,255,.05),
+    inset 1px 0 0 rgba(255,255,255,.06),
+    inset -1px 0 0 rgba(255,255,255,.06)}
+.glass::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.2px;
+  background:linear-gradient(160deg,rgba(255,255,255,.6),rgba(255,255,255,.07) 30%,rgba(255,255,255,.02) 55%,rgba(255,255,255,.3));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.glass::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;
+  transition:opacity .5s var(--ease);pointer-events:none;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,20%),rgba(255,255,255,.09),transparent 62%)}
+.glass:hover::after{opacity:1}
+.glass.tiltable{transition:transform .35s var(--spring)}
+.r-m{border-radius:30px}.r-l{border-radius:36px}.r-xl{border-radius:44px}
+
+.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;
+  font-weight:800;font-size:.95rem;cursor:pointer;border:none;overflow:hidden;position:relative;
+  transition:box-shadow .4s var(--ease),transform .35s var(--spring);will-change:transform}
+.btn.primary{background:var(--grad);color:#012517;
+  box-shadow:0 10px 36px rgba(43,194,106,.4),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.primary:hover{box-shadow:0 20px 56px rgba(43,194,106,.6),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.primary:active{transform:scale(.96)}
+.btn.primary::after{content:'';position:absolute;top:0;left:-90%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  transform:skewX(-20deg);transition:.7s}
+.btn.primary:hover::after{left:140%}
+.btn.glassb{color:var(--text);
+  background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.12),
+    0 10px 30px rgba(0,0,0,.45)}
+.btn.glassb:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(61,242,155,.35),
+    0 14px 36px rgba(0,0,0,.5)}
+.btn.small{padding:11px 20px;font-size:.85rem}
+
+/* ============ ПРЕЛОАДЕР ============ */
+#loader{position:fixed;inset:0;z-index:300;background:#000;display:flex;
+  align-items:center;justify-content:center;
+  transition:transform .8s cubic-bezier(.76,0,.24,1)}
+#loader.done{transform:translateY(-101%)}
+#loader .word{display:flex;gap:.04em;font-size:clamp(2.6rem,7vw,4.4rem);font-weight:800;letter-spacing:.3em;overflow:hidden}
+#loader .word span{display:inline-block;transform:translateY(115%);animation:lin .7s var(--ease) forwards;
+  background:linear-gradient(180deg,#fff,#9FE8C4);-webkit-background-clip:text;background-clip:text;color:transparent}
+#loader .word span:nth-child(2){animation-delay:.06s}
+#loader .word span:nth-child(3){animation-delay:.12s}
+#loader .word span:nth-child(4){animation-delay:.18s}
+#loader .word span:nth-child(5){animation-delay:.24s}
+@keyframes lin{to{transform:none}}
+#loader .pct{position:absolute;bottom:30px;left:34px;font-size:.85rem;font-weight:800;
+  color:var(--dim);letter-spacing:.14em;font-variant-numeric:tabular-nums}
+#loader .bar{position:absolute;bottom:0;left:0;height:2px;background:var(--grad);width:0}
+
+/* ============ КУРСОР ============ */
+#cur-dot,#cur-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:250;border-radius:50%;display:none}
+#cur-dot{width:6px;height:6px;margin:-3px 0 0 -3px;background:var(--mint)}
+#cur-ring{width:36px;height:36px;margin:-18px 0 0 -18px;border:1.5px solid rgba(255,255,255,.3);
+  transition:width .3s,height .3s,margin .3s,border-color .3s}
+#cur-ring.big{width:56px;height:56px;margin:-28px 0 0 -28px;border-color:rgba(61,242,155,.7)}
+body.cursor-on{cursor:none}
+body.cursor-on a,body.cursor-on .cc{cursor:none}
+body.cursor-on #cur-dot,body.cursor-on #cur-ring{display:block}
+
+/* ============ ШАПКА — стеклянная пилюля ============ */
+header{position:fixed;top:14px;left:0;right:0;z-index:100;padding:0 16px}
+.nav{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:18px;height:64px;
+  padding:0 10px 0 16px;border-radius:999px;
+  background:linear-gradient(180deg,rgba(20,26,23,.72),rgba(10,14,12,.66));
+  backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);
+  box-shadow:0 14px 40px rgba(0,0,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 0 1px rgba(255,255,255,.07)}
+.brand{display:flex;align-items:center;gap:11px}
+.brand svg{width:40px;height:40px;border-radius:14px;transition:.4s var(--spring);
+  box-shadow:0 6px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2)}
+.brand:hover svg{transform:rotate(-8deg) scale(1.06)}
+.brand-name{font-weight:800;letter-spacing:.3em;font-size:.98rem;color:var(--text)}
+nav.links{display:flex;gap:4px;margin-left:auto;
+  background:rgba(0,0,0,.32);border-radius:999px;padding:4px;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}
+nav.links a{color:var(--muted);font-size:.87rem;font-weight:700;
+  padding:8px 16px;border-radius:999px;transition:.25s}
+nav.links a:hover{color:#04150E;background:var(--grad)}
+@media(max-width:920px){nav.links{display:none}}
+
+/* ============ HERO ============ */
+.hero{min-height:100svh;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;
+  align-items:center;padding:140px 0 90px;position:relative}
+@media(max-width:980px){.hero{grid-template-columns:1fr;padding-top:124px;min-height:auto}}
+.kicker{display:inline-flex;align-items:center;gap:9px;padding:9px 18px;border-radius:999px;
+  color:var(--mint);font-size:.71rem;font-weight:800;letter-spacing:.18em;
+  background:linear-gradient(160deg,rgba(61,242,155,.12),rgba(61,242,155,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(61,242,155,.25)}
+.kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 10px var(--mint);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+h1{font-size:clamp(2.8rem,6.6vw,4.9rem);line-height:1.02;font-weight:800;
+  letter-spacing:-.045em;margin:26px 0 20px}
+h1 .line{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
+h1 .line-in{display:block;transform:translateY(114%);transition:transform 1s var(--ease)}
+body.ready h1 .d1 .line-in{transition-delay:.05s}
+body.ready h1 .d2 .line-in{transition-delay:.15s}
+body.ready h1 .d3 .line-in{transition-delay:.25s}
+body.ready h1 .line-in{transform:none}
+h1 .mint{background:linear-gradient(115deg,#C6FFDF,#3DF29B 55%,#189459);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+h1 .outline{color:transparent;-webkit-text-stroke:1.5px rgba(245,251,247,.42)}
+.fade{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+body.ready .fade{opacity:1;transform:none}
+body.ready .fade.f1{transition-delay:.4s}
+body.ready .fade.f2{transition-delay:.5s}
+body.ready .fade.f3{transition-delay:.6s}
+.sub{color:var(--muted);font-size:1.07rem;max-width:30rem;line-height:1.66}
+.sub b{color:var(--text);font-weight:600}
+.cta{display:flex;gap:12px;margin-top:32px;flex-wrap:wrap}
+.hero-meta{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+.hero-meta span{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;
+  border-radius:999px;font-size:.79rem;font-weight:700;color:var(--muted);
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.08);
+  transition:.3s var(--spring)}
+.hero-meta span:hover{transform:translateY(-3px);color:var(--mint)}
+.hero-meta span::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 8px var(--mint)}
+.scroll-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+  color:var(--dim);font-size:.7rem;font-weight:800;letter-spacing:.3em;display:flex;
+  flex-direction:column;align-items:center;gap:8px}
+.scroll-hint i{width:1.5px;height:34px;background:linear-gradient(rgba(61,242,155,.7),transparent);
+  animation:drop 1.8s var(--ease) infinite;font-style:normal}
+@keyframes drop{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}
+55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+@media(max-height:700px){.scroll-hint{display:none}}
+
+/* ============ IPHONE (стеклянный экран) ============ */
+.phone-zone{display:flex;justify-content:center;perspective:1500px}
+.phone-float{animation:float 7s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-13px)}}
+.phone{width:300px;border-radius:54px;padding:11px;position:relative;
+  background:linear-gradient(150deg,#2a2f2c,#0a0d0b 40%,#1a201d);
+  box-shadow:0 50px 100px rgba(0,0,0,.85),inset 0 1px 1px rgba(255,255,255,.3);
+  transform-style:preserve-3d;will-change:transform;transition:transform .25s ease-out}
+.phone::before{content:'';position:absolute;inset:0;border-radius:54px;padding:1.5px;
+  background:linear-gradient(150deg,rgba(255,255,255,.6),rgba(255,255,255,.05) 35%,rgba(255,255,255,.2));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.phone .btn-side{position:absolute;background:linear-gradient(90deg,#3a423e,#161a18);border-radius:3px}
+.phone .vol1{left:-2.5px;top:128px;width:3px;height:34px}
+.phone .vol2{left:-2.5px;top:172px;width:3px;height:34px}
+.phone .pwr{right:-2.5px;top:148px;width:3px;height:56px}
+.screen{border-radius:44px;overflow:hidden;position:relative;
+  background:linear-gradient(175deg,#0E5039 0%,#0A3627 44%,#04150E 100%);
+  min-height:596px;padding:12px 13px 64px}
+.screen .gloss{position:absolute;inset:0;border-radius:44px;pointer-events:none;z-index:9;
+  background:linear-gradient(115deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 24%,transparent 42%)}
+.island{width:94px;height:26px;border-radius:999px;background:#000;margin:4px auto 14px;
+  display:flex;align-items:center;justify-content:flex-end;padding-right:9px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.island .cam{width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#1e2c38,#05070a 65%)}
+.scr-top{display:flex;justify-content:space-between;align-items:center;padding:0 6px;margin-bottom:12px}
+.scr-logo{font-weight:800;letter-spacing:.28em;font-size:.9rem;
+  background:linear-gradient(100deg,#C6FFDF,#3DF29B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.scr-live{display:inline-flex;align-items:center;gap:6px;font-size:.56rem;font-weight:800;
+  letter-spacing:.12em;color:var(--red);background:rgba(255,107,90,.12);padding:5px 10px;border-radius:999px}
+.scr-live i{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite}
+.scr-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:9px}
+.scr-card{background:rgba(255,255,255,.09);border-radius:19px;padding:11px 9px 10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(255,255,255,.04)}
+.scr-card i{font-style:normal;font-size:.5rem;color:var(--dim);letter-spacing:.1em;display:block;margin-bottom:4px}
+.scr-card b{font-size:.98rem;font-weight:800;font-variant-numeric:tabular-nums}
+.scr-card b.m{color:var(--mint)}.scr-card b.r{color:var(--red)}.scr-card b.g{color:var(--gold)}
+.scr-timer{text-align:center;font-size:2.5rem;font-weight:800;letter-spacing:-.02em;
+  margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.scr-panel{background:rgba(255,255,255,.08);border-radius:21px;padding:12px;margin-bottom:9px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+.scr-panel .t{font-size:.55rem;letter-spacing:.13em;color:var(--dim);margin-bottom:9px;
+  display:flex;justify-content:space-between}
+.scr-panel .t b{color:var(--mint)}
+.bars{display:flex;align-items:flex-end;gap:5px;height:44px}
+.bars span{flex:1;border-radius:7px;background:linear-gradient(180deg,#3DF29B,#158052);
+  transform-origin:bottom;transform:scaleY(0);transition:transform .9s var(--spring)}
+.bars span:nth-child(2){transition-delay:.07s}.bars span:nth-child(3){transition-delay:.14s}
+.bars span:nth-child(4){transition-delay:.21s}.bars span:nth-child(5){transition-delay:.28s}
+.bars span:nth-child(6){transition-delay:.35s}.bars span:nth-child(7){transition-delay:.42s}
+.bars span:nth-child(8){transition-delay:.49s}
+body.ready .bars span{transform:scaleY(1)}
+.scr-btn{background:var(--grad);border-radius:999px;padding:13px;text-align:center;
+  font-weight:800;font-size:.86rem;color:#012517;margin-top:6px;
+  box-shadow:0 8px 24px rgba(43,194,106,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+.scr-tabs{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-around;
+  background:rgba(0,0,0,.55);border-radius:999px;padding:10px 0;font-size:1.05rem;
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14)}
+.scr-tabs span{opacity:.35}.scr-tabs span.on{opacity:1;color:var(--mint)}
+.phone.mini{width:264px}
+.phone.mini .screen{min-height:512px}
+.phone.mini .scr-timer{font-size:2.2rem}
+
+/* ============ СЕКЦИИ ============ */
+section{padding:92px 0}
+.slabel{display:flex;align-items:center;gap:12px;font-size:.72rem;font-weight:800;
+  color:var(--dim);letter-spacing:.22em;margin-bottom:18px;text-transform:uppercase}
+.slabel::before{content:'';width:26px;height:1.5px;background:var(--mint)}
+h2{font-size:clamp(1.9rem,3.9vw,2.9rem);font-weight:800;letter-spacing:-.035em;
+  line-height:1.08;margin-bottom:14px;max-width:40rem}
+h2 .mint{background:linear-gradient(115deg,#C6FFDF,#3DF29B 55%,#189459);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sec-sub{color:var(--muted);max-width:34rem;font-size:1rem;line-height:1.64}
+
+/* ============ МАНИФЕСТ ============ */
+.manifesto{padding:130px 0}
+.manifesto p{font-size:clamp(1.7rem,4.4vw,3rem);font-weight:800;letter-spacing:-.03em;
+  line-height:1.25;max-width:56rem}
+.manifesto .w{color:rgba(245,251,247,.14);transition:color .5s var(--ease)}
+.manifesto .w.lit{color:var(--text)}
+.manifesto .w.accent.lit{background:linear-gradient(115deg,#C6FFDF,#3DF29B);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ============ ВОЗМОЖНОСТИ — стеклянный бенто ============ */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:48px}
+.b{padding:28px 26px;border-radius:32px;will-change:transform}
+.b-xl{grid-column:span 7}.b-l{grid-column:span 5}
+.b-m{grid-column:span 4}
+@media(max-width:960px){.b-xl,.b-l,.b-m{grid-column:span 12}}
+.b:hover.tiltable{transform:translateY(-6px) perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.b .ic{width:50px;height:50px;border-radius:17px;display:flex;align-items:center;
+  justify-content:center;font-size:1.35rem;margin-bottom:17px;
+  background:linear-gradient(160deg,rgba(61,242,155,.2),rgba(61,242,155,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 22px rgba(43,194,106,.16);transition:.45s var(--spring)}
+.b:hover .ic{transform:rotate(-9deg) scale(1.1)}
+.b h3{font-size:1.08rem;font-weight:800;margin-bottom:8px}
+.b p{color:var(--muted);font-size:.9rem;line-height:1.6}
+.b .tag{position:absolute;top:22px;right:22px;font-size:.58rem;font-weight:800;
+  letter-spacing:.13em;color:var(--mint);padding:6px 12px;border-radius:999px;
+  background:rgba(61,242,155,.09);box-shadow:inset 0 0 0 1px rgba(61,242,155,.25)}
+
+.route-svg{margin-top:18px;width:100%;height:100px}
+.route-svg .path{fill:none;stroke:url(#rg);stroke-width:3.4;stroke-linecap:round;
+  stroke-dasharray:620;stroke-dashoffset:620;transition:stroke-dashoffset 2.6s var(--ease)}
+.rv.on .route-svg .path{stroke-dashoffset:0}
+.route-svg .start,.route-svg .end{fill:#000;stroke:#3DF29B;stroke-width:2.6}
+
+.ecg{margin-top:16px;width:100%;height:50px}
+.ecg path{fill:none;stroke:#FF6B5A;stroke-width:2.2;stroke-linecap:round;
+  stroke-dasharray:340;stroke-dashoffset:340;animation:ecg 3.2s linear infinite;
+  filter:drop-shadow(0 0 6px rgba(255,107,90,.45))}
+@keyframes ecg{to{stroke-dashoffset:-340}}
+.hr-live{display:flex;align-items:baseline;gap:8px;margin-top:11px}
+.hr-live b{font-size:2rem;font-weight:800;color:var(--red);animation:beat 1.1s ease-in-out infinite;
+  font-variant-numeric:tabular-nums}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.08)}24%{transform:scale(1)}}
+.hr-live span{color:var(--dim);font-size:.78rem;font-weight:700}
+
+.wave{display:flex;align-items:center;gap:4px;height:36px;margin-top:18px}
+.wave i{width:4.5px;border-radius:999px;background:var(--mint);animation:wv 1.1s ease-in-out infinite}
+@keyframes wv{0%,100%{height:22%}50%{height:100%}}
+.wave.off i{animation-play-state:paused;opacity:.25}
+
+/* ============ ПУЛЬТ — стеклянные тумблеры ============ */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+@media(max-width:960px){.split{grid-template-columns:1fr;gap:40px}}
+.cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.cc-grid{grid-template-columns:1fr}}
+.cc{border-radius:22px;padding:15px 17px;display:flex;align-items:center;gap:12px;cursor:pointer;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:background .3s}
+.cc:hover{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.04))}
+.cc .cci{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1rem;flex-shrink:0;background:rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);transition:.35s var(--spring)}
+.cc.on .cci{background:var(--grad);box-shadow:0 6px 16px rgba(43,194,106,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+.cc .cct{flex:1}
+.cc .cct b{font-size:.85rem;font-weight:800;display:block}
+.cc .cct span{font-size:.69rem;color:var(--dim);font-weight:600}
+.ios-sw{width:50px;height:30px;border-radius:999px;position:relative;flex-shrink:0;
+  background:rgba(120,120,128,.4);box-shadow:inset 0 1px 3px rgba(0,0,0,.4);transition:.35s var(--ease)}
+.ios-sw .knob{position:absolute;top:2px;left:2px;width:26px;height:26px;border-radius:50%;
+  background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.4),0 1px 1px rgba(0,0,0,.25);transition:left .35s var(--spring)}
+.ios-sw.on{background:var(--grad);box-shadow:0 4px 14px rgba(43,194,106,.35)}
+.ios-sw.on .knob{left:22px}
+
+/* ============ INDOOR ============ */
+.checks{list-style:none;margin-top:22px;display:grid;gap:10px}
+.checks li{display:flex;gap:12px;align-items:flex-start;color:var(--muted);font-size:.92rem}
+.checks li b{color:var(--text);font-weight:700}
+.checks li::before{content:'✓';color:#012517;font-weight:800;font-size:.68rem;
+  width:22px;height:22px;border-radius:50%;background:var(--grad);flex-shrink:0;margin-top:2px;
+  display:inline-flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(43,194,106,.35)}
+
+/* ============ ШАГИ ============ */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:48px}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
+.step{border-radius:32px;padding:30px 28px;overflow:hidden}
+.step .n{font-size:3.6rem;font-weight:800;line-height:1;color:transparent;
+  -webkit-text-stroke:1.5px rgba(61,242,155,.55);transition:.4s var(--spring)}
+.step:hover .n{-webkit-text-stroke-color:var(--mint);transform:translateY(-4px)}
+.step h3{font-weight:800;font-size:1.05rem;margin:16px 0 7px}
+.step p{color:var(--muted);font-size:.89rem}
+
+/* ============ CTA ============ */
+.cta-final{text-align:center;border-radius:48px;padding:88px 28px;overflow:hidden}
+.cta-final h2{margin:0 auto 14px;max-width:none}
+.cta-final p{color:var(--muted);max-width:31rem;margin:0 auto 32px}
+.cta-final .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:2}
+.cta-final .mini{margin-top:22px;color:var(--dim);font-size:.8rem}
+
+/* ============ ОБНОВЛЕНИЯ (verro.txt) ============ */
+.cl{border-radius:30px;padding:26px 28px;margin-bottom:14px}
+.cl .cl-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.cl .cl-ver{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-weight:800;font-size:.85rem;
+  color:#012517;background:var(--grad);padding:5px 13px;border-radius:999px;
+  box-shadow:0 6px 18px rgba(43,194,106,.3),inset 0 1px 0 rgba(255,255,255,.35)}
+.cl .cl-title{font-weight:800;font-size:1.02rem}
+.cl .cl-latest{font-size:.6rem;font-weight:800;letter-spacing:.14em;color:var(--mint);
+  box-shadow:inset 0 0 0 1px rgba(61,242,155,.35);border-radius:999px;padding:4px 10px;
+  background:rgba(61,242,155,.07)}
+.cl ul{list-style:none;margin-top:14px;display:grid;gap:8px}
+.cl li{position:relative;padding-left:20px;color:var(--muted);font-size:.9rem;line-height:1.5}
+.cl li::before{content:'';position:absolute;left:2px;top:.5em;width:7px;height:7px;border-radius:50%;
+  background:var(--mint);box-shadow:0 0 8px rgba(61,242,155,.5)}
+.cl.old{display:none}
+#changelog.show-all .cl.old{display:block}
+.chk{display:inline-flex;align-items:center;gap:11px;margin-top:10px;cursor:pointer;user-select:none;
+  padding:12px 20px;border-radius:999px;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.1);
+  font-size:.88rem;font-weight:700;color:var(--muted);transition:.3s}
+.chk:hover{color:var(--text);transform:translateY(-2px)}
+.chk input{display:none}
+.chk .box{width:22px;height:22px;border-radius:8px;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28);
+  display:flex;align-items:center;justify-content:center;transition:.25s;flex-shrink:0}
+.chk input:checked + .box{background:var(--grad);box-shadow:0 4px 14px rgba(43,194,106,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.chk .box::after{content:'✓';color:#012517;font-size:.75rem;font-weight:900;opacity:0;transform:scale(.4);transition:.25s var(--spring)}
+.chk input:checked + .box::after{opacity:1;transform:scale(1)}
+
+/* ============ ФУТЕР ============ */
+footer{padding:40px 0 56px}
+.foot{border-radius:36px;padding:28px 32px;display:flex;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:26px}
+.f-brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.28em}
+.f-brand svg{width:32px;height:32px;border-radius:11px}
+.f-meta{color:var(--dim);font-size:.8rem}
+.f-links{display:flex;gap:4px}
+.f-links a{color:var(--muted);font-size:.82rem;font-weight:700;
+  padding:8px 14px;border-radius:999px;transition:.25s}
+.f-links a:hover{color:var(--mint);background:rgba(61,242,155,.09)}
+.mega{display:flex;justify-content:center;gap:.03em;user-select:none;
+  font-size:clamp(4rem,16vw,12rem);font-weight:800;letter-spacing:.02em;line-height:1;padding:10px 0 0}
+.mega span{color:transparent;-webkit-text-stroke:1.5px rgba(245,251,247,.2);
+  transition:.45s var(--spring);display:inline-block}
+.mega span:hover{color:var(--mint);-webkit-text-stroke-color:transparent;transform:translateY(-10px)}
+
+/* ============ ВЕБ-ПРИЛОЖЕНИЕ (хост) ============ */
+#appHost{position:fixed;inset:0;z-index:400;display:none;background:#060807}
+#appHost.on{display:block}
+#appHost iframe{width:100%;height:100%;border:none;display:block}
+#appClose{position:fixed;top:14px;right:16px;z-index:410;display:none;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:999px;border:none;cursor:pointer;font-weight:800;font-size:.82rem;
+  color:#04150E;background:var(--grad);box-shadow:0 10px 30px rgba(43,194,106,.45);font-family:inherit}
+#appHost.on ~ #appClose{display:inline-flex}
+
+/* ============ ПОЯВЛЕНИЕ ============ */
+.rv{opacity:0;transform:translateY(30px);transition:opacity .85s var(--ease),transform .85s var(--ease)}
+.rv.on{opacity:1;transform:none}
+.rv.d1{transition-delay:.09s}.rv.d2{transition-delay:.18s}.rv.d3{transition-delay:.27s}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv,.fade{opacity:1;transform:none}
+  h1 .line-in{transform:none}
+  #loader{display:none}
+  .bars span{transform:scaleY(1)}
+}
+</style>
+</head>
+<body>
+
+<!-- ПРЕЛОАДЕР -->
+<div id="loader">
+  <div class="word"><span>V</span><span>E</span><span>R</span><span>R</span><span>O</span></div>
+  <div class="pct" id="pct">0%</div>
+  <div class="bar" id="lbar"></div>
+</div>
+
+<div id="cur-dot"></div><div id="cur-ring"></div>
+
+<!-- ШАПКА -->
+<header id="hdr">
+  <div class="nav">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#1D7A57"/><stop offset="1" stop-color="#03130C"/>
+        </linearGradient></defs>
+        <rect width="240" height="240" rx="70" fill="url(#lg1)"/>
+        <path d="M40 168 L98 84 L128 126 L148 100 L200 168 Z" fill="#ECF6F1" opacity=".96"/>
+        <g fill="#3DF29B">
+          <circle cx="118" cy="118" r="9"/>
+          <path d="M118 128 L104 146 L86 152 L90 160 L112 152 L126 138 Z"/>
+          <path d="M120 130 L138 140 L154 136 L152 146 L136 150 L116 142 Z"/>
+          <path d="M112 134 L100 150 L96 168 L104 168 L112 152 L122 142 Z"/>
+        </g>
+      </svg>
+      <span class="brand-name">VERRO</span>
+    </a>
+    <nav class="links">
+      <a href="#features">Возможности</a>
+      <a href="#control">Пульт</a>
+      <a href="#indoor">Без GPS</a>
+      <a href="#updates">Обновления</a>
+      <a href="#top" onclick="openApp();return false">Приложение</a>
+    </nav>
+    <a class="btn primary small" href="https://drive.google.com/file/d/16zxSI1dpSlvIDS79zukLNy_cBt4lgnsA/view?usp=sharing" target="_blank" rel="noopener" data-magnet>Скачать APK</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <div>
+      <span class="kicker fade"><span class="dot"></span>VERRO 4.1 · БЕЗ АККАУНТОВ И ОБЛАКОВ</span>
+      <h1>
+        <span class="line d1"><span class="line-in">Тренируйся</span></span>
+        <span class="line d2"><span class="line-in mint">свободно.</span></span>
+        <span class="line d3"><span class="line-in outline">Где угодно.</span></span>
+      </h1>
+      <p class="sub fade f1">Офлайн-трекер для бега, велосипеда и зала.
+      <b>GPS-трек с телефона, пульсометры, 3D-реплеи</b> и голосовой тренер —
+      всё на вашем устройстве.</p>
+      <div class="cta fade f2">
+        <a class="btn primary" href="https://drive.google.com/file/d/16zxSI1dpSlvIDS79zukLNy_cBt4lgnsA/view?usp=sharing" target="_blank" rel="noopener" data-magnet>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Скачать APK · 80 МБ
+        </a>
+        <a class="btn glassb" href="#features" data-magnet>Возможности</a>
+        <a class="btn glassb" href="#top" onclick="openApp();return false" data-magnet>📱 Веб-приложение</a>
+      </div>
+      <div class="hero-meta fade f3">
+        <span>Android 8.0+</span><span>Бесплатно</span><span>GPS телефона</span><span>Работа в фоне</span><span>100% офлайн</span>
+      </div>
+    </div>
+
+    <div class="phone-zone fade f1" id="phoneZone">
+      <div class="phone-float">
+        <div class="phone" id="phone">
+          <span class="btn-side vol1"></span><span class="btn-side vol2"></span><span class="btn-side pwr"></span>
+          <div class="screen">
+            <div class="gloss"></div>
+            <div class="island"><span class="cam"></span></div>
+            <div class="scr-top">
+              <span class="scr-logo">VERRO</span>
+              <span class="scr-live"><i></i>ЗАПИСЬ</span>
+            </div>
+            <div class="scr-timer" id="tMain">12:47</div>
+            <div class="scr-cards">
+              <div class="scr-card"><i>ДИСТАНЦИЯ</i><b class="m" id="tKm">3.42 км</b></div>
+              <div class="scr-card"><i>ПУЛЬС</i><b class="r" id="tHr">152</b></div>
+              <div class="scr-card"><i>ТЕМП</i><b id="tPace">5'12"</b></div>
+            </div>
+            <div class="scr-panel">
+              <div class="t">ОБЪЁМ · 12 НЕДЕЛЬ <b>+18%</b></div>
+              <div class="bars">
+                <span style="height:34%"></span><span style="height:52%"></span>
+                <span style="height:41%"></span><span style="height:66%"></span>
+                <span style="height:55%"></span><span style="height:80%"></span>
+                <span style="height:63%"></span><span style="height:96%"></span>
+              </div>
+            </div>
+            <div class="scr-panel">
+              <div class="t">ЗОНЫ ПУЛЬСА <b>ЗОНА 3</b></div>
+              <div class="bars" style="height:32px">
+                <span style="height:88%;background:linear-gradient(180deg,#7BE8C8,#189459)"></span>
+                <span style="height:100%;background:linear-gradient(180deg,#3DF29B,#158052)"></span>
+                <span style="height:74%;background:linear-gradient(180deg,#FFD641,#C88A00)"></span>
+                <span style="height:48%;background:linear-gradient(180deg,#FF9A5A,#C75B00)"></span>
+                <span style="height:26%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+              </div>
+            </div>
+            <div class="scr-cards" style="grid-template-columns:1fr 1fr">
+              <div class="scr-card"><i>КАЛОРИИ</i><b class="g" id="tCal">287</b></div>
+              <div class="scr-card"><i>НАБОР ВЫСОТЫ</i><b>126 м</b></div>
+            </div>
+            <div class="scr-tabs"><span class="on">⌂</span><span>🕘</span><span>✦</span><span>◉</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-hint">ЛИСТАЙТЕ<i></i></div>
+  </section>
+
+  <!-- МАНИФЕСТ -->
+  <section class="manifesto" id="manifesto">
+    <p id="manText">Ваши тренировки принадлежат только вам. Без аккаунтов. Без облаков. Без слежки. Только вы, дистанция и время.</p>
+  </section>
+
+  <!-- ВОЗМОЖНОСТИ -->
+  <section id="features">
+    <div class="slabel rv">Возможности</div>
+    <h2 class="rv">Всё для тренировок. <span class="mint">Ничего лишнего.</span></h2>
+    <p class="sec-sub rv d1">Трекинг, датчики, анализ и экспорт — в одном приложении, полностью офлайн.</p>
+
+    <div class="bento">
+      <div class="b glass tiltable b-xl rv" data-spot id="gpsCard">
+        <span class="tag">ФИЛЬТР КАЛМАНА</span>
+        <div class="ic">🛰️</div>
+        <h3>GPS-трек с телефона</h3>
+        <p>Встроенный приёмник телефона + фильтр Калмана: ровный маршрут,
+        честный темп и набор высоты. Автопауза на остановках.</p>
+        <svg class="route-svg" viewBox="0 0 520 100" preserveAspectRatio="none">
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#3DF29B"/><stop offset="1" stop-color="#FFD641"/>
+          </linearGradient></defs>
+          <path class="path" d="M14 78 C 80 78, 96 26, 150 30 S 232 76, 286 54 S 356 10, 412 26 S 480 68, 506 52"/>
+          <circle class="start" cx="14" cy="78" r="6"/>
+          <circle class="end" cx="506" cy="52" r="6"/>
+        </svg>
+      </div>
+
+      <div class="b glass tiltable b-l rv d1" data-spot>
+        <span class="tag">BLE · HR / CSC</span>
+        <div class="ic">❤️</div>
+        <h3>Пульс в реальном времени</h3>
+        <p>Любой блютуз-датчик: пульсометр, каденс, беговой сенсор.
+        Зоны пульса и HRV-анализ после нагрузки.</p>
+        <svg class="ecg" viewBox="0 0 340 50" preserveAspectRatio="none">
+          <path d="M0 25 H40 l6-9 7 9 h18 l7-22 9 40 8-18 h30 l6-9 7 9 h18 l7-22 9 40 8-18 h30 l6-9 7 9 h18 l7-22 9 40 8-18 h30 l6-9 7 9 h23"/>
+        </svg>
+        <div class="hr-live"><b>152</b><span>уд/мин · зона 3</span></div>
+      </div>
+
+      <div class="b glass tiltable b-m rv" data-spot>
+        <div class="ic">🗣️</div>
+        <h3>Голосовой тренер</h3>
+        <p>Километры, темп, пульс и похвала — русским голосом, офлайн.</p>
+        <div class="wave" id="wave">
+          <i style="animation-delay:0s"></i><i style="animation-delay:.1s"></i>
+          <i style="animation-delay:.2s"></i><i style="animation-delay:.3s"></i>
+          <i style="animation-delay:.15s"></i><i style="animation-delay:.45s"></i>
+          <i style="animation-delay:.05s"></i><i style="animation-delay:.35s"></i>
+          <i style="animation-delay:.25s"></i><i style="animation-delay:.4s"></i>
+        </div>
+      </div>
+
+      <div class="b glass tiltable b-m rv d1" data-spot>
+        <div class="ic">🏠</div>
+        <h3>Режим «в помещении»</h3>
+        <p>Тренировка без GPS за секунду: таймер, калории по пульсу, ваши датчики.</p>
+      </div>
+
+      <div class="b glass tiltable b-m rv d2" data-spot>
+        <div class="ic">🎬</div>
+        <h3>3D-реплеи</h3>
+        <p>Кинематографичный облёт трека в 3D и экспорт видео.</p>
+      </div>
+
+      <div class="b glass tiltable b-l rv d2" data-spot>
+        <div class="ic">🛟</div>
+        <h3>Детектор падения и SOS</h3>
+        <p>Резкая остановка включает отсчёт: не ответили — VERRO отправит SMS
+        с координатами близким. Плюс таймер «на связи».</p>
+      </div>
+
+      <div class="b glass tiltable b-m rv d3" data-spot>
+        <div class="ic">📦</div>
+        <h3>Данные — ваши</h3>
+        <p>База только на телефоне. Экспорт куда угодно, удаление одним касанием.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ПУЛЬТ -->
+  <section id="control">
+    <div class="split">
+      <div>
+        <div class="slabel rv">Пульт управления</div>
+        <h2 class="rv">Всё под рукой <span class="mint">до старта</span></h2>
+        <p class="sec-sub rv d1">Голос тренера, автопауза, детектор падения — включаются
+        одним касанием. Попробуйте переключатели — они рабочие.</p>
+      </div>
+      <div class="glass rv d2" style="border-radius:36px;padding:24px">
+        <div class="cc-grid">
+          <div class="cc on" role="switch" aria-checked="true" data-fx="wave">
+            <span class="cci">🗣️</span>
+            <span class="cct"><b>Голосовой тренер</b><span>километры и темп</span></span>
+            <span class="ios-sw on"><span class="knob"></span></span>
+          </div>
+          <div class="cc on" role="switch" aria-checked="true">
+            <span class="cci">⏸️</span>
+            <span class="cct"><b>Автопауза</b><span>на остановках</span></span>
+            <span class="ios-sw on"><span class="knob"></span></span>
+          </div>
+          <div class="cc on" role="switch" aria-checked="true">
+            <span class="cci">🛟</span>
+            <span class="cct"><b>Детектор падения</b><span>SOS-отсчёт</span></span>
+            <span class="ios-sw on"><span class="knob"></span></span>
+          </div>
+          <div class="cc" role="switch" aria-checked="false">
+            <span class="cci">👻</span>
+            <span class="cct"><b>Призрак</b><span>гонка с прошлым «я»</span></span>
+            <span class="ios-sw"><span class="knob"></span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INDOOR -->
+  <section id="indoor">
+    <div class="split">
+      <div>
+        <div class="slabel rv">Без GPS</div>
+        <h2 class="rv">Нет GPS? <span class="mint">Начнём без него.</span></h2>
+        <p class="sec-sub rv d1">Велотренажёр, зал, метель за окном — VERRO стартует мгновенно.
+        На улице берёт координаты с GPS вашего телефона — никаких внешних трекеров.</p>
+        <ul class="checks rv d2">
+          <li><b>GPS телефона</b> — трек со встроенного приёмника, точность на экране</li>
+          <li><b>Старт без GPS</b> — одна кнопка для зала и помещения</li>
+          <li><b>Датчики по желанию</b> — пульс и каденс работают везде</li>
+        </ul>
+        <div class="cta rv d3" style="margin-top:28px">
+          <a class="btn primary" href="https://drive.google.com/file/d/16zxSI1dpSlvIDS79zukLNy_cBt4lgnsA/view?usp=sharing" target="_blank" rel="noopener" data-magnet>Попробовать сейчас</a>
+        </div>
+      </div>
+      <div class="phone-zone rv d2" style="justify-content:center">
+        <div class="phone-float" style="animation-delay:1.2s">
+          <div class="phone mini">
+            <span class="btn-side vol1"></span><span class="btn-side vol2"></span><span class="btn-side pwr"></span>
+            <div class="screen" style="padding-bottom:64px">
+              <div class="gloss"></div>
+              <div class="island"><span class="cam"></span></div>
+              <div style="text-align:center;margin:2px 0 4px">
+                <div style="font-size:.54rem;letter-spacing:.24em;color:var(--dim);font-weight:800">ТРЕНИРОВКА · В ПОМЕЩЕНИИ</div>
+                <div class="scr-timer" id="t2">24:18</div>
+                <div style="color:var(--mint);font-size:.76rem;font-weight:800">🔥 ИДЁТ ЗАПИСЬ</div>
+              </div>
+              <div class="scr-cards" style="grid-template-columns:1fr 1fr">
+                <div class="scr-card"><i>ПУЛЬС</i><b class="r" id="hr2">148</b></div>
+                <div class="scr-card"><i>КАЛОРИИ</i><b id="cal2">318</b></div>
+                <div class="scr-card"><i>ЗОНА</i><b class="g">3 · АЭРО</b></div>
+                <div class="scr-card"><i>КАДЕНС</i><b>86</b></div>
+              </div>
+              <div class="scr-panel">
+                <div class="t">ПУЛЬС · ПОСЛЕДНИЕ МИНУТЫ <b>-2</b></div>
+                <div class="bars" style="height:36px">
+                  <span style="height:62%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                  <span style="height:74%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                  <span style="height:58%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                  <span style="height:82%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                  <span style="height:70%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                  <span style="height:64%;background:linear-gradient(180deg,#FF6B5A,#C0392B)"></span>
+                </div>
+              </div>
+              <div class="scr-btn" style="background:linear-gradient(135deg,#FF6B5A,#C0392B);color:#fff;box-shadow:0 8px 22px rgba(192,57,43,.4)">■&ensp;Финиш</div>
+              <div class="scr-tabs"><span class="on">⏸</span><span>⏹</span><span>🔒</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УСТАНОВКА -->
+  <section id="install">
+    <div class="slabel rv">Установка</div>
+    <h2 class="rv">Три шага — <span class="mint">и вы на треке</span></h2>
+    <div class="steps">
+      <div class="step glass rv"><div class="n">1</div><h3>Скачайте APK</h3>
+        <p>Кнопка ниже — файл около 80 МБ. Android 8.0 или новее.</p></div>
+      <div class="step glass rv d1"><div class="n">2</div><h3>Разрешите установку</h3>
+        <p>Android один раз спросит про «неизвестные источники» — подтвердите.</p></div>
+      <div class="step glass rv d2"><div class="n">3</div><h3>Дайте разрешения</h3>
+        <p>Геолокация и активность — для трекинга. Bluetooth — только для датчиков.</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="cta-final glass rv">
+      <h2>Первая тренировка — <span class="mint">в одну кнопку</span></h2>
+      <p>Скачайте VERRO 4.1 бесплатно. Всё, что вы запишете, останется на вашем телефоне.</p>
+      <div class="row">
+        <a class="btn primary" href="https://drive.google.com/file/d/16zxSI1dpSlvIDS79zukLNy_cBt4lgnsA/view?usp=sharing" target="_blank" rel="noopener" data-magnet>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 20h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Скачать VERRO 4.1 · бесплатно
+        </a>
+        <a class="btn glassb" href="#top" onclick="openApp();return false">📱 Открыть веб-приложение</a>
+      </div>
+      <div class="mini">Android 8.0+ · ~80 МБ · версия 4.1.0 (10)</div>
+    </div>
+  </section>
+
+  <!-- ОБНОВЛЕНИЯ (читается из verro.txt) -->
+  <section id="updates">
+    <div class="slabel rv">Обновления</div>
+    <h2 class="rv">Что нового <span class="mint">в приложении</span></h2>
+    <div id="changelog" class="rv d1" style="margin-top:28px"></div>
+    <label class="chk rv d2">
+      <input type="checkbox" id="showAll">
+      <span class="box"></span>
+      <span id="chkLabel">Показать все версии</span>
+    </label>
+  </section>
+</main>
+
+<!-- ФУТЕР -->
+<footer>
+  <div class="wrap">
+    <div class="foot glass">
+      <div class="f-brand">
+        <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1D7A57"/><stop offset="1" stop-color="#03130C"/>
+          </linearGradient></defs>
+          <rect width="240" height="240" rx="70" fill="url(#lg2)"/>
+          <path d="M40 168 L98 84 L128 126 L148 100 L200 168 Z" fill="#ECF6F1" opacity=".96"/>
+          <g fill="#3DF29B">
+            <circle cx="118" cy="118" r="9"/>
+            <path d="M118 128 L104 146 L86 152 L90 160 L112 152 L126 138 Z"/>
+            <path d="M120 130 L138 140 L154 136 L152 146 L136 150 L116 142 Z"/>
+            <path d="M112 134 L100 150 L96 168 L104 168 L112 152 L122 142 Z"/>
+          </g>
+        </svg>
+        VERRO
+      </div>
+      <div class="f-links"><a href="#features">Возможности</a><a href="#indoor">Без GPS</a><a href="#updates">Обновления</a></div>
+      <div class="f-meta">© 2026 VERRO · Россия</div>
+    </div>
+    <div class="mega" aria-hidden="true"><span>V</span><span>E</span><span>R</span><span>R</span><span>O</span></div>
+  </div>
+</footer>
+
+<noscript><style>.rv,.fade{opacity:1;transform:none}h1 .line-in{transform:none}#loader{display:none}</style></noscript>
+
+<script>
+const FINE=matchMedia('(hover:hover) and (pointer:fine)').matches;
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ===== прелоадер ===== */
+(function(){
+  const pct=document.getElementById('pct'),bar=document.getElementById('lbar'),
+        loader=document.getElementById('loader'),t0=performance.now(),D=1050;
+  if(REDUCED){loader.remove();document.body.classList.add('ready');return}
+  document.body.style.overflow='hidden';
+  (function tick(t){
+    let p=Math.min(1,(t-t0)/D);p=1-Math.pow(1-p,3);
+    pct.textContent=Math.round(p*100)+'%';bar.style.width=p*100+'%';
+    if(p<1)requestAnimationFrame(tick);
+    else{loader.classList.add('done');document.body.style.overflow='';
+      document.body.classList.add('ready');
+      setTimeout(()=>loader.remove(),900)}
+  })(t0);
+})();
+
+/* ===== курсор-прицел ===== */
+if(FINE&&!REDUCED){
+  document.body.classList.add('cursor-on');
+  const d=document.getElementById('cur-dot'),r=document.getElementById('cur-ring');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{
+    mx=e.clientX;my=e.clientY;
+    d.style.transform=`translate(${mx}px,${my}px)`;
+    r.classList.toggle('big',!!e.target.closest('a,.cc,.glass'));
+  },{passive:true});
+  (function loop(){rx+=(mx-rx)*.16;ry+=(my-ry)*.16;
+    r.style.transform=`translate(${rx}px,${ry}px)`;requestAnimationFrame(loop)})();
+}
+
+/* ===== магнитные кнопки ===== */
+if(FINE&&!REDUCED)document.querySelectorAll('[data-magnet]').forEach(el=>{
+  el.addEventListener('mousemove',e=>{const b=el.getBoundingClientRect();
+    const x=(e.clientX-b.left-b.width/2)*.22,y=(e.clientY-b.top-b.height/2)*.32;
+    el.style.transform=`translate(${x}px,${y}px)`});
+  el.addEventListener('mouseleave',()=>el.style.transform='');
+});
+
+/* ===== наклон телефона (lerp) ===== */
+(function(){
+  const zone=document.getElementById('phoneZone'),ph=document.getElementById('phone');
+  if(!zone||!FINE||REDUCED)return;
+  let tx=0,ty=0,cx=0,cy=0;
+  zone.addEventListener('mousemove',e=>{const r=zone.getBoundingClientRect();
+    tx=((e.clientX-r.left)/r.width-.5)*14;ty=-((e.clientY-r.top)/r.height-.5)*11});
+  zone.addEventListener('mouseleave',()=>{tx=0;ty=0});
+  (function loop(){cx+=(tx-cx)*.09;cy+=(ty-cy)*.09;
+    ph.style.transform=`rotateY(${cx}deg) rotateX(${cy}deg)`;
+    requestAnimationFrame(loop)})();
+})();
+
+/* ===== стеклянные карточки: блик под курсором + лёгкий наклон ===== */
+if(FINE&&!REDUCED)document.querySelectorAll('[data-spot]').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const b=card.getBoundingClientRect();
+    const dx=(e.clientX-b.left)/b.width-.5,dy=(e.clientY-b.top)/b.height-.5;
+    card.style.setProperty('--mx',(e.clientX-b.left)+'px');
+    card.style.setProperty('--my',(e.clientY-b.top)+'px');
+    card.style.setProperty('--rx',(-dy*4)+'deg');
+    card.style.setProperty('--ry',(dx*4)+'deg');
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.style.setProperty('--rx','0deg');card.style.setProperty('--ry','0deg');
+  });
+});
+
+/* ===== появление при скролле ===== */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}
+}),{threshold:.15});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+/* ===== манифест: слова загораются по скроллу ===== */
+(function(){
+  const box=document.getElementById('manText');
+  const words=box.textContent.trim().split(/\s+/);
+  box.innerHTML=words.map(w=>{
+    const accent=/^(только|вам\.?)$/i.test(w)?' accent':'';
+    return `<span class="w${accent}">${w}</span>`}).join(' ');
+  const spans=[...box.querySelectorAll('.w')];
+  addEventListener('scroll',()=>{
+    const r=box.getBoundingClientRect(),vh=innerHeight;
+    const p=Math.min(1,Math.max(0,(vh*.82-r.top)/(r.height+vh*.28)));
+    const n=Math.round(p*spans.length);
+    spans.forEach((s,i)=>s.classList.toggle('lit',i<n));
+  },{passive:true});
+})();
+
+/* ===== шапка при скролле — чуть плотнее ===== */
+addEventListener('scroll',()=>{
+  const hdr=document.getElementById('hdr');
+  hdr.style.opacity=scrollY>30?'1':'.98';
+},{passive:true});
+
+/* ===== iOS-переключатели ===== */
+document.querySelectorAll('.cc').forEach(cc=>{
+  cc.addEventListener('click',()=>{
+    const sw=cc.querySelector('.ios-sw');
+    const on=cc.classList.toggle('on');
+    sw.classList.toggle('on',on);
+    cc.setAttribute('aria-checked',on);
+    if(cc.dataset.fx==='wave')document.getElementById('wave').classList.toggle('off',!on);
+  });
+});
+
+/* ===== Обновления из verro.txt ===== */
+(async function(){
+  const FALLBACK=document.getElementById('clFallback')?.textContent.trim()||'';
+  let txt=FALLBACK;
+  try{
+    const r=await fetch('verro.txt',{cache:'no-store'});
+    if(r.ok){const t=(await r.text()).trim(); if(t) txt=t;}
+  }catch(e){/* превью/файл без сервера — встроенная копия */}
+  const rels=[];let cur=null;
+  txt.split(/\r?\n/).forEach(raw=>{
+    const line=raw.trim();if(!line)return;
+    const m=line.match(/^(\d+\.\d+(?:\.\d+)?\s*\(\d+\))\s*[—–-]?\s*(.*)$/);
+    if(m){cur={ver:m[1],title:m[2].trim(),items:[]};rels.push(cur)}
+    else if(cur&&line.startsWith('-'))cur.items.push(line.replace(/^[-•*]\s*/,'').trim());
+  });
+  const box=document.getElementById('changelog');
+  box.innerHTML=rels.map((r,i)=>`
+    <div class="cl glass${i===0?'':' old'}">
+      <div class="cl-head">
+        <span class="cl-ver">${r.ver}</span>
+        <span class="cl-title">${r.title}</span>
+        ${i===0?'<span class="cl-latest">АКТУАЛЬНАЯ</span>':''}
+      </div>
+      ${r.items.length?`<ul>${r.items.map(t=>`<li>${t}</li>`).join('')}</ul>`:''}
+    </div>`).join('');
+  const cb=document.getElementById('showAll'),lab=document.getElementById('chkLabel');
+  cb.addEventListener('change',()=>{
+    box.classList.toggle('show-all',cb.checked);
+    lab.textContent=cb.checked?'Скрыть старые версии':'Показать все версии';
+  });
+})();
+
+/* ===== живые данные телефонов ===== */
+(function(){
+  let s1=12*60+47,s2=24*60+18,km=3.42,c1=287,c2=318;
+  const $=id=>document.getElementById(id);
+  const fmt=s=>{s|=0;return (s/60|0)+':'+String(s%60).padStart(2,'0')};
+  setInterval(()=>{
+    s1++;s2++;
+    const h1=$('tMain'),h2=$('t2');
+    if(h1)h1.textContent=fmt(s1);
+    if(h2)h2.textContent=fmt(s2);
+    if(s1%5===0&&$('tKm')){km+=.01;$('tKm').textContent=km.toFixed(2)+' км'}
+    if(s1%4===0&&$('tCal')){$('tCal').textContent=++c1}
+    if(s2%6===0&&$('cal2')){$('cal2').textContent=++c2}
+  },1000);
+  setInterval(()=>{
+    const t=Date.now()/1000;
+    const hr1=152+Math.round(Math.sin(t*.7)*3+(Math.random()*4-2));
+    const hr2=148+Math.round(Math.sin(t*.5)*3+(Math.random()*4-2));
+    const p=507+Math.round(Math.sin(t*.3)*5);
+    const e1=$('tHr'),e2=$('hr2'),ep=$('tPace');
+    if(e1)e1.textContent=hr1;
+    if(e2)e2.textContent=hr2;
+    if(ep)ep.textContent=(p/60|0)+"'"+String(p%60).padStart(2,'0')+'"';
+  },900);
+})();
+</script>
+
+<div id="appHost"><iframe id="appFrame" title="VERRO Web" allow="geolocation; web-share; clipboard-write"></iframe></div>
+<button id="appClose" onclick="closeApp()">← Сайт</button>
+
+<script>
+/* ===== Веб-приложение VERRO (встроено в этот файл) ===== */
+const VR_APP_DOC="<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">\n<meta name=\"theme-color\" content=\"#060807\">\n<title>VERRO Web — приложение в браузере<\/title>\n<link rel=\"icon\" href='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><rect width=\"64\" height=\"64\" rx=\"18\" fill=\"%23063220\"/><path d=\"M16 44 L32 20 L48 44 Z\" fill=\"%233DF29B\"/><\/svg>'>\n<style>\n:root{\n  --text:#F5FBF7;--muted:rgba(245,251,247,.6);--dim:rgba(245,251,247,.36);\n  --mint:#3DF29B;--gold:#FFD641;--red:#FF6B5A;\n  --grad:linear-gradient(135deg,#3EE894,#189459);\n  --ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1);\n}\n*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}\nhtml,body{height:100%}\nbody{font-family:-apple-system,\"SF Pro Display\",\"Segoe UI\",system-ui,Roboto,Arial,sans-serif;\n  background:#060807;color:var(--text);line-height:1.5;overflow:hidden;\n  -webkit-font-smoothing:antialiased;user-select:none}\n::selection{background:rgba(61,242,155,.35)}\n.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums}\n\n/* ============ ОБОЛОЧКА КАК ТЕЛЕФОН ============ */\n#device{max-width:520px;height:100dvh;margin:0 auto;position:relative;display:flex;flex-direction:column;\n  background:#060807;overflow:hidden}\n@media(min-width:560px){#device{height:min(100dvh,940px);margin:auto;border-radius:44px;\n  box-shadow:0 0 0 1px rgba(255,255,255,.09),0 40px 120px rgba(0,0,0,.9)}}\n@media(min-width:560px){body{display:flex;align-items:center;justify-content:center;background:#000}}\n\n/* ============ СТЕКЛО ============ */\n.glass{position:relative;border-radius:24px;\n  background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02) 40%,rgba(255,255,255,.05));\n  box-shadow:0 14px 34px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.07)}\n.pill{border-radius:999px}\n\n/* ============ СПЛЭШ ============ */\n#splash{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;\n  background:linear-gradient(180deg,#0B100E,#060807);flex-direction:column;gap:14px;\n  transition:opacity .5s,visibility .5s}\n#splash.off{opacity:0;visibility:hidden}\n.flame{font-size:56px;animation:flick 1.2s ease-in-out infinite;filter:drop-shadow(0 0 22px rgba(255,214,65,.5))}\n@keyframes flick{50%{transform:scale(1.12) rotate(-2deg)}}\n.wordmark{font-size:38px;font-weight:800;letter-spacing:.32em;margin-left:.32em;\n  background:linear-gradient(120deg,#C6FFDF,#3DF29B);-webkit-background-clip:text;background-clip:text;color:transparent}\n.splash-sub{font-size:10px;letter-spacing:.3em;color:var(--dim);font-weight:700}\n.spin{width:24px;height:24px;border-radius:50%;border:2.4px solid rgba(61,242,155,.2);\n  border-top-color:var(--mint);animation:sp 1s linear infinite;margin-top:16px}\n@keyframes sp{to{transform:rotate(360deg)}}\n\n/* ============ ШАПКА ============ */\n#topbar{padding:14px 18px 10px;display:flex;align-items:center;gap:12px}\n.logo-mini{width:38px;height:38px;border-radius:13px;flex-shrink:0;\n  background:linear-gradient(180deg,#1D7A57,#03130C);display:flex;align-items:center;justify-content:center;\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}\n.logo-mini svg{width:26px;height:26px}\n.tb-title{font-weight:800;letter-spacing:.26em;font-size:15px}\n.tb-sub{font-size:9.5px;letter-spacing:.2em;color:var(--mint);font-weight:700}\n.tb-spacer{flex:1}\n.gbtn{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;\n  font-size:17px;background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 0 1px rgba(255,255,255,.09);cursor:pointer;\n  transition:transform .3s var(--spring)}\n.gbtn:active{transform:scale(.92)}\n\n/* ============ ЭКРАНЫ ============ */\n#screens{flex:1;position:relative;overflow:hidden}\n.scr{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 18px 110px;\n  display:none;scrollbar-width:none}\n.scr::-webkit-scrollbar{display:none}\n.scr.on{display:block;animation:scrIn .35s var(--ease)}\n@keyframes scrIn{from{opacity:0;transform:translateY(10px)}}\n\n/* оверлейные экраны (push со страницы, как в приложении) */\n.ovl{position:absolute;inset:0;z-index:40;background:#060807;display:none;flex-direction:column}\n.ovl.on{display:flex;animation:push .38s var(--ease)}\n@keyframes push{from{transform:translateX(100%)}}\n.ovl-head{padding:14px 16px 10px;display:flex;align-items:center;gap:12px}\n.ovl-head .ttl{font-weight:800;font-size:17px}\n.ovl-body{flex:1;overflow-y:auto;padding:2px 18px 30px;scrollbar-width:none}\n.ovl-body::-webkit-scrollbar{display:none}\n.back{width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;\n  background:rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);cursor:pointer;font-size:17px}\n\n/* ============ ДЕТАЛИ ============ */\n.h-sec{font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--dim);margin:22px 2px 10px;\n  display:flex;align-items:center;gap:9px;text-transform:uppercase}\n.h-sec::before{content:'';width:20px;height:1.5px;background:var(--mint)}\n.mrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}\n.mrow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}\n.metric{padding:13px;border-radius:22px}\n.metric i{font-style:normal;display:block;font-size:9px;letter-spacing:.14em;color:var(--dim);font-weight:800;margin-bottom:6px}\n.metric b{font-size:21px;font-weight:800}\n.metric small{font-size:10px;color:var(--dim);font-weight:600;margin-left:3px}\n.btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:15px 22px;border-radius:999px;\n  font-weight:800;font-size:14.5px;cursor:pointer;border:none;width:100%;\n  background:var(--grad);color:#012517;\n  box-shadow:0 10px 28px rgba(43,194,106,.35),inset 0 1px 0 rgba(255,255,255,.4);\n  transition:transform .3s var(--spring)}\n.btn:active{transform:scale(.965)}\n.btn.ghost{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));color:var(--text);\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.13)}\n.btn.danger{background:linear-gradient(135deg,#FF6B5A,#C0392B);color:#fff;box-shadow:0 10px 26px rgba(192,57,43,.35)}\n.btnrow{display:flex;gap:10px}.btnrow .btn{flex:1}\n.chip{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;font-size:12.5px;\n  font-weight:700;color:var(--muted);background:rgba(255,255,255,.05);\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(255,255,255,.09);cursor:pointer;\n  transition:.25s;white-space:nowrap}\n.chip.on{color:var(--mint);background:rgba(61,242,155,.13);\n  box-shadow:inset 0 0 0 1px rgba(61,242,155,.4)}\n.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}\n.chips::-webkit-scrollbar{display:none}\n.banner{display:flex;align-items:center;gap:12px;padding:15px 16px;border-radius:24px;margin:10px 0;\n  background:linear-gradient(160deg,rgba(61,242,155,.14),rgba(61,242,155,.04));\n  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 0 1px rgba(61,242,155,.3);cursor:pointer}\n.banner b{font-size:13px}\n.banner small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}\n.arrow{margin-left:auto;color:var(--mint);font-size:16px}\n.empty{text-align:center;padding:52px 26px}\n.empty .ic{width:78px;height:78px;margin:0 auto 16px;border-radius:26px;display:flex;align-items:center;\n  justify-content:center;font-size:32px;background:linear-gradient(160deg,rgba(61,242,155,.14),rgba(61,242,155,.03));\n  box-shadow:inset 0 0 0 1px rgba(61,242,155,.22)}\n.empty b{font-size:15px}.empty p{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.5}\ninput.tf{width:100%;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.13);\n  background:rgba(255,255,255,.05);color:var(--text);font-size:14px;outline:none;font-family:inherit}\ninput.tf:focus{border-color:var(--mint)}\n\n/* ============ НАВИГАЦИЯ ============ */\n#navbar{position:absolute;left:0;right:0;bottom:0;z-index:50;padding:0 12px calc(12px + env(safe-area-inset-bottom))}\n.nav-glass{display:flex;border-radius:999px;overflow:hidden;\n  background:rgba(10,14,12,.68);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);\n  box-shadow:0 16px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.07)}\n.nav-it{flex:1;padding:11px 0 9px;text-align:center;cursor:pointer;transition:.25s;color:var(--dim)}\n.nav-it .ni{font-size:19px;display:block;filter:grayscale(1);opacity:.55;transition:.25s}\n.nav-it span{font-size:9.5px;font-weight:700;letter-spacing:.04em}\n.nav-it.on{color:var(--mint)}\n.nav-it.on .ni{filter:none;opacity:1;transform:translateY(-1px)}\n\n/* ============ ТРЕКИНГ ============ */\n#scr-track{background:linear-gradient(180deg,#0B100E,#060807)}\n.hud{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px}\n.hudpill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;\n  font-size:11px;font-weight:800;font-family:ui-monospace,Menlo,monospace;\n  background:rgba(4,18,12,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 rgba(255,255,255,.1)}\n.hudpill.acc{color:var(--mint)}.hudpill.warn{color:var(--gold)}.hudpill.srch{color:var(--mint);animation:blink 1.2s infinite}\n.hudpill.demo{color:#fff;background:rgba(255,214,65,.16);box-shadow:inset 0 0 0 1px rgba(255,214,65,.4)}\n@keyframes blink{50%{opacity:.45}}\n#mapWrap{position:relative;border-radius:26px;overflow:hidden;height:240px;margin:10px 0;\n  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);background:\n  repeating-linear-gradient(0deg,transparent 0 31px,rgba(255,255,255,.035) 31px 32px),\n  repeating-linear-gradient(90deg,transparent 0 31px,rgba(255,255,255,.035) 31px 32px),#0A0F0D}\n#mapWrap svg.tl{position:absolute;inset:0}\n#mapWrap canvas{position:absolute;inset:0;z-index:2}\n#mapWrap .mz{position:absolute;right:10px;bottom:10px;z-index:3;display:flex;flex-direction:column;gap:6px}\n#mapWrap .mz button{width:34px;height:34px;border-radius:12px;border:none;cursor:pointer;font-size:16px;color:var(--text);\n  background:rgba(10,14,12,.8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}\n#trackTimer{text-align:center;font-size:52px;font-weight:800;letter-spacing:-.02em;margin:2px 0 6px}\n.track-cta{position:sticky;bottom:0;padding:10px 0 2px;display:flex;justify-content:space-evenly;align-items:center;\n  background:linear-gradient(transparent,rgba(6,8,7,.94) 38%)}\n.ctl{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;\n  background:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.1);cursor:pointer}\n.ctl.big{width:76px;height:76px;font-size:30px;background:var(--mint);\n  box-shadow:0 12px 34px rgba(43,194,106,.5),inset 0 2px 0 rgba(255,255,255,.4);color:#012517}\n.ctl.big.paused{background:var(--gold);box-shadow:0 12px 34px rgba(255,214,65,.4)}\n.ctl.stop{background:linear-gradient(135deg,#FF6B5A,#C0392B);color:#fff}\n\n/* ============ КАРТА ============ */\n#mapWrap img{position:absolute;width:256px;height:256px;user-select:none;-webkit-user-drag:none}\n\n/* ============ СПИСОК ============ */\n.wcard{display:flex;align-items:center;gap:12px;padding:13px;border-radius:24px;margin-bottom:9px;cursor:pointer}\n.wbadge{width:46px;height:46px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:21px;\n  background:rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.09);flex-shrink:0}\n.wcard .wn{font-weight:700;font-size:13.5px}\n.wcard .wd{color:var(--dim);font-size:11px;margin-top:1px}\n.wcard .wm{margin-top:5px;font-size:12px;color:var(--muted);display:flex;gap:10px}\n.wcard .wm b{color:var(--mint);font-weight:700}\n.month{font-size:10.5px;letter-spacing:.18em;color:var(--dim);font-weight:800;margin:16px 2px 8px}\n\n/* ============ ДИАЛОГ ============ */\n#dlg{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:26px;\n  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}\n#dlg.on{display:flex}\n.dlg-card{width:100%;max-width:340px;border-radius:28px;padding:22px;animation:pop .35s var(--spring)}\n@keyframes pop{from{transform:scale(.9);opacity:0}}\n.dlg-card h3{font-size:16.5px;margin-bottom:8px}\n.dlg-card p{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.5}\n.dlg-acts{display:grid;gap:8px}\n\n/* ============ ПРОЧЕЕ ============ */\n.sw-row{display:flex;align-items:center;gap:12px;padding:13px 15px}\n.sw-row b{font-size:13.5px}.sw-row small{display:block;color:var(--dim);font-size:11px}\n.sw{margin-left:auto;width:48px;height:29px;border-radius:999px;background:rgba(120,120,128,.4);position:relative;\n  cursor:pointer;transition:.3s;flex-shrink:0;box-shadow:inset 0 1px 3px rgba(0,0,0,.4)}\n.sw::after{content:'';position:absolute;top:2px;left:2px;width:25px;height:25px;border-radius:50%;background:#fff;\n  box-shadow:0 2px 6px rgba(0,0,0,.4);transition:left .3s var(--spring)}\n.sw.on{background:var(--grad)}\n.sw.on::after{left:21px}\n.split-row{display:flex;justify-content:space-between;padding:11px 15px;border-radius:16px;margin-bottom:6px;font-size:13px}\n.stat-line{display:flex;justify-content:space-between;padding:12px 15px;border-radius:16px;margin-bottom:7px;font-size:13.5px}\n.stat-line span{color:var(--muted)}\n.fntile{border-radius:20px;padding:12px 8px;text-align:center;cursor:pointer}\n.fntile .fi{width:42px;height:42px;margin:0 auto 7px;border-radius:14px;display:flex;align-items:center;justify-content:center;\n  font-size:19px;background:rgba(61,242,155,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(61,242,155,.2)}\n.fntile b{font-size:10.5px;display:block}\n.fgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}\n.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);z-index:80;\n  padding:12px 20px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;\n  background:rgba(16,21,19,.95);box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.14);\n  transition:.35s var(--ease);max-width:88%;text-align:center}\n.toast.on{opacity:1;transform:translateX(-50%)}\n.canvas-card{border-radius:24px;padding:14px}\n<\/style>\n<\/head>\n<body>\n<div id=\"device\">\n\n  <!-- СПЛЭШ -->\n  <div id=\"splash\">\n    <div class=\"flame\">🔥<\/div>\n    <div class=\"wordmark\">VERRO<\/div>\n    <div class=\"splash-sub\">ТРЕНИРУЙСЯ СВОБОДНО<\/div>\n    <div class=\"spin\"><\/div>\n  <\/div>\n\n  <!-- ШАПКА -->\n  <div id=\"topbar\">\n    <div class=\"logo-mini\">\n      <svg viewBox=\"0 0 240 240\"><rect width=\"240\" height=\"240\" rx=\"70\" fill=\"none\"/>\n        <path d=\"M40 168 L98 84 L128 126 L148 100 L200 168 Z\" fill=\"#ECF6F1\" opacity=\".96\"/>\n        <g fill=\"#3DF29B\"><circle cx=\"118\" cy=\"118\" r=\"9\"/>\n        <path d=\"M118 128 L104 146 L86 152 L90 160 L112 152 L126 138 Z\"/>\n        <path d=\"M120 130 L138 140 L154 136 L152 146 L136 150 L116 142 Z\"/>\n        <path d=\"M112 134 L100 150 L96 168 L104 168 L112 152 L122 142 Z\"/><\/g><\/svg>\n    <\/div>\n    <div><div class=\"tb-title\">VERRO<\/div><div class=\"tb-sub\">GPS ТЕЛЕФОНА · ОФЛАЙН<\/div><\/div>\n    <div class=\"tb-spacer\"><\/div>\n    <div class=\"gbtn\" onclick=\"openOvl('scr-safety')\">🛟<\/div>\n    <div class=\"gbtn\" onclick=\"showTab('scr-profile')\">⚙️<\/div>\n  <\/div>\n\n  <!-- ЭКРАНЫ -->\n  <div id=\"screens\">\n\n    <!-- ГЛАВНАЯ -->\n    <section class=\"scr on\" id=\"scr-home\">\n      <div id=\"draftBanner\"><\/div>\n      <div class=\"mrow3\" id=\"homeStats\" style=\"margin-top:4px\"><\/div>\n      <div class=\"glass canvas-card\" style=\"margin-top:10px\">\n        <div style=\"display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.14em;color:var(--dim);font-weight:800\">\n          <span>ОБЪЁМ · 12 НЕДЕЛЬ<\/span><span id=\"homeTrend\" style=\"color:var(--mint)\"><\/span>\n        <\/div>\n        <canvas id=\"weekChart\" height=\"86\" style=\"width:100%;margin-top:8px\"><\/canvas>\n      <\/div>\n      <div class=\"h-sec\">Быстрый старт<\/div>\n      <div class=\"chips\" id=\"sportChips\"><\/div>\n      <div style=\"display:grid;gap:9px;margin-top:8px\">\n        <button class=\"btn\" onclick=\"startFlow(false)\">▶&nbsp; Начать тренировку<\/button>\n        <button class=\"btn ghost\" onclick=\"startFlow(true)\">🏠&nbsp; Без GPS — в помещении<\/button>\n      <\/div>\n      <div class=\"h-sec\">Все функции<\/div>\n      <div class=\"fgrid\" id=\"homeTools\"><\/div>\n      <div style=\"height:10px\"><\/div>\n      <button class=\"btn ghost\" onclick=\"showTab('scr-functions')\">Все функции · открыть вкладку →<\/button>\n    <\/section>\n\n    <!-- ФУНКЦИИ -->\n    <section class=\"scr\" id=\"scr-functions\">\n      <input class=\"tf\" id=\"fnSearch\" placeholder=\"🔍&nbsp; Поиск функции…\" style=\"margin:4px 0 10px\">\n      <div id=\"fnList\"><\/div>\n    <\/section>\n\n    <!-- ИСТОРИЯ -->\n    <section class=\"scr\" id=\"scr-history\">\n      <div class=\"chips\" id=\"histChips\" style=\"margin-top:4px\"><\/div>\n      <div id=\"histList\"><\/div>\n    <\/section>\n\n    <!-- СОЗДАННОЕ -->\n    <section class=\"scr\" id=\"scr-created\">\n      <p style=\"color:var(--muted);font-size:12.5px;margin:8px 2px 12px\">\n        Карточки ваших тренировок — можно поделиться текстом или сохранить GPX.<\/p>\n      <div id=\"createdList\"><\/div>\n    <\/section>\n\n    <!-- ПРОФИЛЬ -->\n    <section class=\"scr\" id=\"scr-profile\">\n      <div class=\"h-sec\">Профиль<\/div>\n      <div class=\"glass\" style=\"padding:16px;display:grid;gap:10px\">\n        <input class=\"tf\" id=\"pName\" placeholder=\"Имя\">\n        <div class=\"mrow\">\n          <input class=\"tf\" id=\"pWeight\" type=\"number\" inputmode=\"decimal\" placeholder=\"Вес, кг\">\n          <input class=\"tf\" id=\"pBirth\" type=\"number\" inputmode=\"numeric\" placeholder=\"Год рождения\">\n        <\/div>\n        <div class=\"chips\">\n          <span class=\"chip\" id=\"sexM\" onclick=\"setSex('m')\">Мужчина<\/span>\n          <span class=\"chip\" id=\"sexF\" onclick=\"setSex('f')\">Женщина<\/span>\n        <\/div>\n        <button class=\"btn\" onclick=\"saveProfile()\">Сохранить<\/button>\n      <\/div>\n      <div class=\"h-sec\">Голосовой тренер<\/div>\n      <div class=\"glass sw-row\"><div><b>Русский голос<\/b><small>километры и похвала<\/small><\/div>\n        <div class=\"sw on\" id=\"swVoice\" onclick=\"this.classList.toggle('on')\"><\/div><\/div>\n      <div class=\"h-sec\">Данные<\/div>\n      <div class=\"stat-line glass\"><span>Тренировок в базе<\/span><b class=\"mono\" id=\"profCount\">0<\/b><\/div>\n      <div style=\"display:grid;gap:9px;margin-top:8px\">\n        <button class=\"btn ghost\" onclick=\"exportAllGpx()\">⬇&nbsp; Экспорт всех GPX<\/button>\n        <button class=\"btn danger\" onclick=\"wipeAll()\">Удалить все данные<\/button>\n      <\/div>\n      <p style=\"color:var(--dim);font-size:10.5px;margin-top:14px;text-align:center\">\n        VERRO Web 4.1 · данные хранятся только в этом браузере<\/p>\n    <\/section>\n  <\/div>\n\n  <!-- НАВИГАЦИЯ -->\n  <div id=\"navbar\">\n    <div class=\"nav-glass\">\n      <div class=\"nav-it on\" data-tab=\"scr-home\" onclick=\"showTab('scr-home')\"><span class=\"ni\">⌂<\/span><span>Главная<\/span><\/div>\n      <div class=\"nav-it\" data-tab=\"scr-functions\" onclick=\"showTab('scr-functions')\"><span class=\"ni\">✦<\/span><span>Функции<\/span><\/div>\n      <div class=\"nav-it\" data-tab=\"scr-history\" onclick=\"showTab('scr-history')\"><span class=\"ni\">🕘<\/span><span>История<\/span><\/div>\n      <div class=\"nav-it\" data-tab=\"scr-created\" onclick=\"showTab('scr-created')\"><span class=\"ni\">🎞<\/span><span>Созданное<\/span><\/div>\n      <div class=\"nav-it\" data-tab=\"scr-profile\" onclick=\"showTab('scr-profile')\"><span class=\"ni\">👤<\/span><span>Профиль<\/span><\/div>\n    <\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ТРЕКИНГ ===== -->\n  <div class=\"ovl\" id=\"scr-track\">\n    <div class=\"ovl-head\">\n      <div class=\"back\" onclick=\"trackCancel()\">←<\/div>\n      <div><div class=\"ttl\" id=\"trkSport\">Бег<\/div>\n      <div style=\"font-size:10px;letter-spacing:.2em;color:var(--mint);font-weight:800\" id=\"trkState\">ПОДГОТОВКА<\/div><\/div>\n    <\/div>\n    <div class=\"ovl-body\">\n      <div class=\"hud\" id=\"trkHud\"><\/div>\n      <div id=\"mapWrap\"><canvas id=\"mapCv\"><\/canvas>\n        <div class=\"mz\"><button onclick=\"tmap.zoom(1)\">+<\/button><button onclick=\"tmap.zoom(-1)\">−<\/button><\/div>\n      <\/div>\n      <div id=\"trackTimer\" class=\"mono\">0:00<\/div>\n      <div class=\"mrow3\">\n        <div class=\"metric glass\"><i>ДИСТАНЦИЯ<\/i><b class=\"mono\" id=\"trkDist\" style=\"color:var(--mint)\">0.00<\/b><small>км<\/small><\/div>\n        <div class=\"metric glass\"><i>ТЕМП<\/i><b class=\"mono\" id=\"trkPace\">—:——<\/b><\/div>\n        <div class=\"metric glass\"><i>ККАЛ<\/i><b class=\"mono\" id=\"trkCal\" style=\"color:var(--gold)\">0<\/b><\/div>\n      <\/div>\n      <div class=\"mrow\" style=\"margin-top:9px\">\n        <div class=\"metric glass\"><i>СКОРОСТЬ<\/i><b class=\"mono\" id=\"trkSpeed\">0.0<\/b><small>км/ч<\/small><\/div>\n        <div class=\"metric glass\"><i>НАБОР ВЫСОТЫ<\/i><b class=\"mono\" id=\"trkElev\">0<\/b><small>м<\/small><\/div>\n      <\/div>\n      <div id=\"trkGhost\" style=\"margin-top:9px\"><\/div>\n    <\/div>\n    <div class=\"track-cta\">\n      <div class=\"ctl\" onclick=\"trkLock()\">🔒<\/div>\n      <div class=\"ctl big\" id=\"ctlPause\" onclick=\"trkPause()\">⏸<\/div>\n      <div class=\"ctl stop\" onclick=\"trkStop()\">■<\/div>\n    <\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ИТОГИ ===== -->\n  <div class=\"ovl\" id=\"scr-summary\">\n    <div class=\"ovl-head\"><div class=\"ttl\" id=\"sumTitle\">Тренировка сохранена ✓<\/div><\/div>\n    <div class=\"ovl-body\" id=\"sumBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ДЕТАЛИ ===== -->\n  <div class=\"ovl\" id=\"scr-detail\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-detail')\">←<\/div><div class=\"ttl\">Анализ<\/div><\/div>\n    <div class=\"ovl-body\" id=\"detailBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ИНТЕРВАЛЫ ===== -->\n  <div class=\"ovl\" id=\"scr-intervals\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"ivStop();closeOvl('scr-intervals')\">←<\/div><div class=\"ttl\">Интервалы<\/div><\/div>\n    <div class=\"ovl-body\">\n      <div class=\"mrow3\">\n        <div class=\"metric glass\"><i>РАБОТА, МИН<\/i><input class=\"tf\" id=\"ivWork\" type=\"number\" value=\"3\" style=\"margin-top:4px;padding:10px\"><\/div>\n        <div class=\"metric glass\"><i>ОТДЫХ, МИН<\/i><input class=\"tf\" id=\"ivRest\" type=\"number\" value=\"1\" style=\"margin-top:4px;padding:10px\"><\/div>\n        <div class=\"metric glass\"><i>РАУНДОВ<\/i><input class=\"tf\" id=\"ivRounds\" type=\"number\" value=\"6\" style=\"margin-top:4px;padding:10px\"><\/div>\n      <\/div>\n      <div style=\"text-align:center;margin:22px 0 6px\">\n        <div class=\"mono\" style=\"font-size:58px;font-weight:800\" id=\"ivClock\">03:00<\/div>\n        <div style=\"color:var(--mint);font-weight:800;font-size:12px;letter-spacing:.2em\" id=\"ivPhase\">ГОТОВ<\/div>\n        <div style=\"color:var(--dim);font-size:12px;margin-top:4px\" id=\"ivRoundInfo\"><\/div>\n      <\/div>\n      <div class=\"btnrow\" style=\"margin-top:16px\">\n        <button class=\"btn\" id=\"ivBtn\" onclick=\"ivToggle()\">▶ Старт<\/button>\n        <button class=\"btn ghost\" onclick=\"ivStop()\">Сброс<\/button>\n      <\/div>\n    <\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: КАЛЕНДАРЬ ===== -->\n  <div class=\"ovl\" id=\"scr-calendar\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-calendar')\">←<\/div><div class=\"ttl\">Календарь<\/div><\/div>\n    <div class=\"ovl-body\" id=\"calBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ТРЕНДЫ ===== -->\n  <div class=\"ovl\" id=\"scr-trends\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-trends')\">←<\/div><div class=\"ttl\">Тренды<\/div><\/div>\n    <div class=\"ovl-body\" id=\"trendsBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ДОСТИЖЕНИЯ ===== -->\n  <div class=\"ovl\" id=\"scr-ach\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-ach')\">←<\/div><div class=\"ttl\">Достижения<\/div><\/div>\n    <div class=\"ovl-body\" id=\"achBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ЧЕЛЛЕНДЖИ ===== -->\n  <div class=\"ovl\" id=\"scr-chal\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-chal')\">←<\/div><div class=\"ttl\">Челленджи<\/div><\/div>\n    <div class=\"ovl-body\" id=\"chalBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: ДАННЫЕ ===== -->\n  <div class=\"ovl\" id=\"scr-io\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-io')\">←<\/div><div class=\"ttl\">Импорт / Экспорт<\/div><\/div>\n    <div class=\"ovl-body\" id=\"ioBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: СНАРЯЖЕНИЕ ===== -->\n  <div class=\"ovl\" id=\"scr-gear\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-gear')\">←<\/div><div class=\"ttl\">Снаряжение<\/div><\/div>\n    <div class=\"ovl-body\" id=\"gearBody\"><\/div>\n  <\/div>\n\n  <!-- ===== ОВЕРЛЕЙ: БЕЗОПАСНОСТЬ ===== -->\n  <div class=\"ovl\" id=\"scr-safety\">\n    <div class=\"ovl-head\"><div class=\"back\" onclick=\"closeOvl('scr-safety')\">←<\/div><div class=\"ttl\">Безопасность<\/div><\/div>\n    <div class=\"ovl-body\">\n      <div class=\"h-sec\">SOS-контакт<\/div>\n      <div class=\"glass\" style=\"padding:16px;display:grid;gap:10px\">\n        <input class=\"tf\" id=\"sosPhone\" inputmode=\"tel\" placeholder=\"Телефон близкого\">\n        <button class=\"btn danger\" onclick=\"sosSend()\">🛟 Отправить SOS с координатами<\/button>\n        <button class=\"btn ghost\" onclick=\"sosShare()\">Поделиться локацией<\/button>\n      <\/div>\n      <p style=\"color:var(--dim);font-size:11px;margin-top:10px;line-height:1.5\">\n        В приложении VERRO также работает детектор падения и геозона — браузер так не умеет,\n        но SOS-сообщение и отправка локации доступны и здесь.<\/p>\n    <\/div>\n  <\/div>\n\n  <!-- ДИАЛОГ / ТОСТ -->\n  <div id=\"dlg\"><div class=\"dlg-card glass\" id=\"dlgCard\"><\/div><\/div>\n  <div class=\"toast\" id=\"toast\"><\/div>\n<\/div>\n\n<script>\n'use strict';\n/* ================================================================\n   VERRO Web — копия приложения: реальная геолокация браузера,\n   карта OSM, история в localStorage, голосовой тренер (TTS).\n   ================================================================ */\nconst $=id=>document.getElementById(id);\nconst haversine=(a,b,c,d)=>{const R=6371000,r=Math.PI/180,\n  da=(c-a)*r,dl=(d-b)*r,x=Math.sin(da/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dl/2)**2;\n  return 2*R*Math.asin(Math.sqrt(x))};\nconst fmtDur=s=>{s|=0;const h=s/3600|0,m=(s%3600)/60|0,ss=s%60;\n  return h?`${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${m}:${String(ss).padStart(2,'0')}`};\nconst fmtPace=(dist,sec)=>dist>.03&&sec>0?(()=>{const p=sec/dist/1000;\n  return `${p/60|0}:${String(Math.round(p%60)).padStart(2,'0')}`})():'—:——';\nconst fmtDist=m=>(m/1000).toFixed(2);\n\n/* ---------- хранилище ---------- */\nconst DB={\n  get workouts(){try{return JSON.parse(localStorage.verro_w||'[]')}catch(e){return[]}},\n  set workouts(v){localStorage.verro_w=JSON.stringify(v)},\n  get draft(){try{return JSON.parse(localStorage.verro_draft||'null')}catch(e){return null}},\n  set draft(v){v?localStorage.verro_draft=JSON.stringify(v):localStorage.removeItem('verro_draft')},\n  get profile(){try{return JSON.parse(localStorage.verro_p||'{}')}catch(e){return{}}},\n  set profile(v){localStorage.verro_p=JSON.stringify(v)},\n  get challenges(){try{return JSON.parse(localStorage.verro_c||'[]')}catch(e){return[]}},\n  set challenges(v){localStorage.verro_c=JSON.stringify(v)},\n  get gear(){try{return JSON.parse(localStorage.verro_g||'[]')}catch(e){return[]}},\n  set gear(v){localStorage.verro_g=JSON.stringify(v)},\n};\n\n/* ---------- виды спорта (как в приложении) ---------- */\nconst SPORTS={\n  run:['Бег','🏃',.87,1],bike:['Велосипед','🚴',.28,1],walk:['Ходьба','🚶',.75,1.2],\n  hike:['Треккинг','🥾',.8,2],treadmill:['Беговая дорожка','🏃‍♂️',.87,1],\n  indoor_bike:['Велотренажёр','⚡',.28,1],ski:['Лыжи','🎿',.7,3],skate:['Коньки','⛸',.75,3],\n  swim:['Плавание','🏊',2.2,2],elliptical:['Эллипс','🔀',.6,3],rowing:['Гребля','🚣',.9,2]};\nconst sportIcon=k=>(SPORTS[k]||SPORTS.run)[1];\nconst sportName=k=>(SPORTS[k]||['Бег'])[0];\n\n/* ---------- голосовой тренер ---------- */\nfunction speak(t){if(!$('swVoice').classList.contains('on'))return;\n  try{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}\nfunction beep(f=880,d=.12){try{const c=new(window.AudioContext||webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();\n  o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+d)}catch(e){}}\n\n/* ---------- тост / диалог ---------- */\nlet toastT;function toast(t){$('toast').textContent=t;$('toast').classList.add('on');\n  clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('on'),2600)}\nfunction dlg(title,body,acts){$('dlgCard').innerHTML=`<h3>${title}<\/h3><p>${body}<\/p>\n  <div class=\"dlg-acts\">${acts.map((a,i)=>`<button class=\"btn ${a.danger?'danger':a.ghost?'ghost':''}\"\n  onclick=\"dlgAct(${i})\">${a.label}<\/button>`).join('')}<\/div>`;\n  window._dlgActs=acts;$('dlg').classList.add('on')}\nfunction dlgAct(i){$('dlg').classList.remove('on');const a=window._dlgActs[i];a&&a.fn&&a.fn()}\n\n/* ---------- навигация ---------- */\nfunction showTab(id){document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id===id));\n  document.querySelectorAll('.nav-it').forEach(n=>n.classList.toggle('on',n.dataset.tab===id));\n  ({'scr-history':renderHistory,'scr-functions':renderFn,'scr-created':renderCreated,'scr-home':renderHome}[id]||(()=>{}))()}\nconst openOvl=id=>{$(id).classList.add('on')};\nconst closeOvl=id=>{$(id).classList.remove('on')};\n\n/* ================= КАРТА (тайлы OSM, без библиотек) ================= */\nclass TMap{\n  constructor(wrap,cv){this.wrap=wrap;this.cv=cv;this.ctx=cv.getContext('2d');\n    this.z=15;this.pts=[];this.px=0;this.py=0;this.follow=true;this.tiles=new Map();\n    wrap.addEventListener('pointerdown',e=>{this.drag={x:e.clientX,y:e.clientY};this.follow=false});\n    wrap.addEventListener('pointermove',e=>{if(!this.drag)return;\n      this.px+=e.clientX-this.drag.x;this.py+=e.clientY-this.drag.y;\n      this.drag={x:e.clientX,y:e.clientY};this.render()});\n    addEventListener('pointerup',()=>this.drag=null);\n    new ResizeObserver(()=>this.render()).observe(wrap)}\n  proj(lat,lon,z){const n=256*2**z,x=(lon+180)/360*n,\n    la=lat*Math.PI/180,y=(1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*n;return{x,y}}\n  zoom(d){this.z=Math.max(3,Math.min(19,this.z+d));this.render()}\n  render(){const w=this.wrap.clientWidth,h=this.wrap.clientHeight;if(!w)return;\n    this.cv.width=w*devicePixelRatio;this.cv.height=h*devicePixelRatio;\n    this.cv.style.width=w+'px';this.cv.style.height=h+'px';\n    const ctx=this.ctx;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);\n    ctx.clearRect(0,0,w,h);\n    if(!this.pts.length)return;\n    // центр: последняя точка (follow) или середина маршрута\n    let c;\n    if(this.follow)c=this.pts[this.pts.length-1];\n    else{const lats=this.pts.map(p=>p[0]),lons=this.pts.map(p=>p[1]);\n      c=[(Math.min(...lats)+Math.max(...lats))/2,(Math.min(...lons)+Math.max(...lons))/2]}\n    const cp=this.proj(c[0],c[1],this.z);\n    const sx=p=>this.proj(p[0],p[1],this.z).x-cp.x+w/2+this.px;\n    const sy=p=>this.proj(p[0],p[1],this.z).y-cp.y+h/2+this.py;\n    // тайлы\n    const scale=2**this.z;\n    const tx0=Math.floor((cp.x+this.px-w/2)/256),tx1=Math.floor((cp.x+this.px+w/2)/256);\n    const ty0=Math.floor((cp.y+this.py-h/2)/256),ty1=Math.floor((cp.y+this.py+h/2)/256);\n    const keep=new Set();\n    for(let tx=tx0;tx<=tx1;tx++)for(let ty=ty0;ty<=ty1;ty++){\n      if(ty<0||ty>=scale)continue;\n      const wx=(tx%scale+scale)%scale,key=`${this.z}/${wx}/${ty}`;keep.add(key);\n      let el=this.tiles.get(key);\n      if(!el){el=document.createElement('img');el.referrerPolicy='no-referrer';\n        el.src=`https://tile.openstreetmap.org/${this.z}/${wx}/${ty}.png`;\n        el.style.opacity='0';el.onload=()=>el.style.opacity='1';\n        this.wrap.insertBefore(el,this.cv);this.tiles.set(key,el)}\n      el.style.left=(tx*256-cp.x-w/2+this.px)+'px';\n      el.style.top=(ty*256-cp.y-h/2+this.py)+'px';\n    }\n    for(const[k,el]of this.tiles)if(!keep.has(k)){el.remove();this.tiles.delete(k)}\n    // линия трека\n    if(this.pts.length>1){ctx.beginPath();ctx.moveTo(sx(this.pts[0]),sy(this.pts[0]));\n      for(const p of this.pts)ctx.lineTo(sx(p),sy(p));\n      ctx.strokeStyle='rgba(6,37,23,.85)';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();\n      ctx.strokeStyle='#3DF29B';ctx.lineWidth=3.4;ctx.stroke();\n      // точки старта/финиша\n      const draw=(p,col)=>{ctx.beginPath();ctx.arc(sx(p),sy(p),5,0,7);ctx.fillStyle=col;\n        ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#fff';ctx.stroke()};\n      draw(this.pts[0],'#fff');draw(this.pts[this.pts.length-1],'#3DF29B')}\n  }\n}\nlet tmap;\n\n/* ================= ТРЕКЕР ================= */\nconst T={on:false,indoor:false,demo:false,sport:'run',pts:[],dist:0,mov:0,el:0,elev:0,\n  last:null,paused:false,cal:0,maxSp:0,speeds:[],lastKm:0,ghost:'',startT:0,watch:null,demoT:null,lock:false};\n\nfunction startFlow(indoor){dlg('Вид спорта','Выберите, что записываем:',\n  Object.entries(SPORTS).map(([k,[n,ic]])=>({label:`${ic}  ${n}`,fn:()=>trackStart(k,indoor)}))\n  .concat([{label:'Отмена',ghost:1}]))}\n\nfunction trackStart(sport,indoor){\n  T.sport=sport;T.indoor=indoor;\n  if(indoor){begin();return}\n  // как в приложении: сначала спрашиваем местоположение\n  dlg('Геолокация','Браузер запросит доступ к вашему местоположению — как приложение запрашивает GPS телефона.',\n    [{label:'Разрешить и начать',fn:requestGeo},{label:'Старт без GPS',ghost:1,fn:()=>{T.indoor=true;begin()}},\n     {label:'Отмена',ghost:1}]);\n}\nfunction requestGeo(){\n  $('trkState').textContent='ПОИСК GPS…';\n  if(!navigator.geolocation){T.indoor=true;begin();return}\n  let settled=false;\n  navigator.geolocation.getCurrentPosition(pos=>{settled=true;begin(pos.coords)},\n    err=>{settled=true;\n      const denied=err.code===1;\n      dlg(denied?'Нет доступа к геолокации':'GPS недоступен',\n        denied?'Разрешение отклонено. Включите доступ к местоположению в настройках браузера (значок замка в адресной строке) — как шторка на телефоне. Или начните без GPS.'\n              :'Не удалось получить координаты. Проверьте, что геолокация включена.',\n        [{label:'Старт без GPS',fn:()=>{T.indoor=true;begin()}},\n         {label:'Демо-режим (симуляция)',fn:()=>{T.demo=true;begin()}},{label:'Отмена',ghost:1}]);\n    },{timeout:9000,enableHighAccuracy:true});\n  setTimeout(()=>{if(!settled){/* тихо ждём дальше */}},9500);\n}\n\nfunction begin(coords){\n  Object.assign(T,{on:true,paused:false,dist:0,mov:0,el:0,elev:0,cal:0,maxSp:0,lastKm:0,\n    pts:[],speeds:[],ghost:'',lock:false,startT:Date.now(),last:null});\n  tmap=tmap||new TMap($('mapWrap'),$('mapCv'));tmap.pts=[];tmap.follow=true;tmap.z=indoor?14:16;\n  closeOvl('scr-intervals');\n  $('trkSport').textContent=sportName(T.sport)+(T.demo?' · ДЕМО':'');\n  $('trkState').textContent=T.indoor?'ЗАПИСЬ · БЕЗ GPS':'ПОИСК GPS…';\n  $('trkGhost').innerHTML='';\n  beep(880);openOvl('scr-track');\n  if(T.indoor){T.watch=null;T.demoT=null;\n    $('trkHud').innerHTML='<span class=\"hudpill acc\">🏠 БЕЗ GPS · ТАЙМЕР<\/span>';\n    tickTimer();return}\n  if(!T.demo){\n    T.watch=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:2000});\n  }else{\n    // симуляция: кольцевой маршрут от стартовой точки (или Пенза)\n    const c0=coords?[coords.latitude,coords.longitude]:[53.195,45.011];\n    let ang=0;T.demoT=setInterval(()=>{ang+=.055;\n      onPos({coords:{latitude:c0[0]+Math.cos(ang)*.0045,longitude:c0[1]+Math.sin(ang)*.0062,\n        altitude:150+Math.sin(ang*3)*6,accuracy:7,speed:2.9+Math.sin(ang*2)*.6}})},1000);\n  }\n  tickTimer();\n  try{navigator.wakeLock&&navigator.wakeLock.request('screen')}catch(e){}\n}\nfunction onPosErr(e){if(!T.on)return;\n  $('trkState').textContent='СИГНАЛ ПОТЕРЯН…'}\nfunction onPos(pos){\n  if(!T.on||T.paused)return;\n  const c=pos.coords;\n  $('trkState').textContent='ИДЁТ ЗАПИСЬ';\n  const hud=$('trkHud');\n  if(T.demo)hud.innerHTML='<span class=\"hudpill demo\">РЕЖИМ ДЕМО · СИМУЛЯЦИЯ GPS<\/span>';\n  else hud.innerHTML=c.accuracy?\n    `<span class=\"hudpill ${c.accuracy>25?'warn':'acc'}\">🛰 ±${Math.round(c.accuracy)} м<\/span>\n     <span class=\"hudpill acc\">GPS ТЕЛЕФОНА<\/span>`:\n    '<span class=\"hudpill srch\">🛰 GPS ТЕЛЕФОНА · ПОИСК<\/span>';\n  const lat=c.latitude,lon=c.longitude,alt=c.altitude??0,t=Date.now();\n  if(T.last){\n    const d=haversine(T.last[0],T.last[1],lat,lon),dt=(t-T.last[3])/1000;\n    if(dt>.3&&d>.6&&d/dt<35){if(!T.paused){T.dist+=d;\n      const da=alt-T.last[2];if(da>1.2)T.elev+=da;else if(da<-1.2)T.elev-=da}}\n  }\n  let sp=c.speed??null;if(sp==null&&T.last){const d=haversine(T.last[0],T.last[1],lat,lon),dt=(t-T.last[3])/1000;\n    sp=dt>0?d/dt:0}\n  sp=Math.max(0,sp||0);T.speeds.push(sp);if(T.speeds.length>20)T.speeds.shift();\n  T.maxSp=Math.max(T.maxSp,sp);\n  T.pts.push([lat,lon,alt,t]);T.last=[lat,lon,alt,t];\n  tmap.pts=T.pts.filter((p,i)=>i%2===0||i===T.pts.length-1);tmap.render();\n  // круг: голос на километре\n  const km=Math.floor(T.dist/1000);\n  if(km>T.lastKm&&km>0){T.lastKm=km;beep(980);\n    speak(`Километр ${km}. Время ${fmtDur(T.mov)}, темп ${fmtPace(T.dist,T.mov)} на километр.`+\n      ghostWord());\n    calcGhost()}\n  calcCal();\n}\nfunction tickTimer(){\n  if(!T.on)return;\n  if(!T.paused){T.el=(Date.now()-T.startT)/1000|0;\n    if(T.indoor)T.mov=T.el;\n    // экран\n    $('trackTimer').textContent=fmtDur(T.el);\n    $('trkDist').textContent=fmtDist(T.dist);\n    const avg=T.mov>0?T.dist/T.mov:0;\n    $('trkPace').textContent=fmtPace(T.dist,T.mov);\n    $('trkSpeed').textContent=avg3().toFixed(1);\n    $('trkElev').textContent=Math.round(T.elev);\n    $('trkCal').textContent=Math.round(T.cal);\n    T.draftT=T.draftT||setInterval(saveDraft,5000);\n  }\n  requestAnimationFrame(()=>setTimeout(tickTimer,250));\n}\nfunction avg3(){const a=T.speeds.slice(-8);if(!a.length)return 0;\n  return a.reduce((x,y)=>x+y,0)/a.length*3.6}\nfunction calcCal(){\n  if(!T.on||T.paused)return;\n  const p=DB.profile,kg=p.weight||75;\n  const[,,a,b]=SPORTS[T.sport]||[0,0,.87,1];\n  const met=Math.min(14,Math.max(1.5,a*Math.max(3,avg3())+b));\n  T.cal+=met*3.5*kg/200/60;\n}\nfunction ghostWord(){return T.ghost?` Призрак: ${T.ghost}.`:''}\nfunction calcGhost(){\n  const best=DB.workouts.filter(w=>w.sport===T.sport&&w.distM>500)\n    .sort((a,b)=>a.movingSec/(a.distanceM||1)-b.movingSec/(b.distanceM||1))[0];\n  if(!best)return;\n  const myPerKm=T.mov/Math.max(T.dist,1);\n  const bestPerKm=best.movingSec/Math.max(best.distanceM,1);\n  const d=(myPerKm-bestPerKm)*1000;\n  T.ghost=(d>0?'+':'−')+fmtDur(Math.abs(d)).replace(/^/,'');\n  T.ghost=(d>0?'+':'')+fmtDur(Math.abs(d))+' на км';\n  $('trkGhost').innerHTML=`<div class=\"banner\" style=\"cursor:default\"><span style=\"font-size:20px\">👻<\/span>\n    <div><b>Призрак: ${T.ghost}<\/b><small>лучшая попытка: ${fmtDist(best.distanceM)} км<\/small><\/div><\/div>`;\n}\nfunction saveDraft(){if(!T.on)return;\n  DB.draft={sport:T.sport,indoor:T.indoor,demo:T.demo,dist:T.dist,mov:T.mov,el:T.el,elev:T.elev,\n    cal:T.cal,pts:T.pts.slice(-4000),startT:T.startT,lastKm:T.lastKm}}\nfunction trkPause(){if(!T.on)return;T.paused=!T.paused;\n  if(T.paused){speak('Пауза')}else{T.startT=Date.now()-T.el*1000;speak('Продолжаем')}\n  const b=$('ctlPause');b.textContent=T.paused?'▶':'⏸';b.classList.toggle('paused',T.paused);\n  $('trkState').textContent=T.paused?'ПАУЗА':'ИДЁТ ЗАПИСЬ'}\nfunction trkLock(){T.lock=!T.lock;toast(T.lock?'Экран заблокирован — кнопки неактивны 3 сек':'Разблокировано');\n  if(T.lock)setTimeout(()=>{T.lock=false},3000)}\nfunction trackCancel(){dlg('Выйти без сохранения?','Запись остановится, данные этой сессии будут удалены.',\n  [{label:'Выйти и удалить',danger:1,fn:()=>{killEngine();DB.draft=null;closeOvl('scr-track')}},\n   {label:'Продолжить тренировку',ghost:1}])}\nfunction killEngine(){T.on=false;if(T.watch!=null)navigator.geolocation.clearWatch(T.watch);\n  if(T.demoT)clearInterval(T.demoT);clearInterval(T.draftT);T.draftT=null}\nfunction trkStop(){if(!T.on)return;\n  dlg('Завершить тренировку?',\n    T.dist<20?'Записано немного — всё равно сохраню в историю.':\n    `${fmtDist(T.dist)} км · ${fmtDur(T.el)}`,[{label:'Сохранить',fn:finishSave},{label:'Продолжить',ghost:1}])}\nfunction finishSave(){\n  killEngine();\n  const w={id:Date.now(),sport:T.sport,name:`${sportName(T.sport)} · ${new Date().toLocaleDateString('ru',{day:'numeric',month:'short'})}`,\n    startedAt:new Date(T.startT).toISOString(),distM:T.dist,elapsedSec:T.el,movingSec:Math.max(T.mov,Math.round(T.dist/Math.max(avg3()/3.6||1,.5))),\n    avgSpeed:T.mov>0?T.dist/T.mov:0,maxSpeed:T.maxSp,elevGain:Math.round(T.elev),cal:Math.round(T.cal),\n    pts:T.pts,splits:makeSplits(T.pts,T.dist,T.mov),demo:T.demo};\n  const arr=DB.workouts;arr.unshift(w);DB.workouts=arr;DB.draft=null;\n  speak(`Тренировка сохранена. ${fmtDist(T.dist)} километра. Отличная работа!`);\n  showSummary(w);\n}\nfunction makeSplits(pts,dist,mov){\n  const sp=[];let acc=0,kmT=0,last=pts[0];\n  for(const p of pts.slice(1)){const d=haversine(last[0],last[1],p[0],p[1]);\n    acc+=d;kmT+=(p[3]-last[3])/1000;last=p;\n    if(acc>=1000){sp.push({km:sp.length+1,sec:Math.round(kmT)});acc=0;kmT=0}}\n  if(sp.length&&acc>30)sp.push({km:sp.length+1,sec:Math.round(kmT),partial:true});\n  return sp}\n\n/* ---------- восстановление черновика (антикраш, как в приложении) ---------- */\nfunction checkDraft(){const d=DB.draft;if(!d)return;$('draftBanner').innerHTML=\n  `<div class=\"banner\" onclick=\"resumeDraft()\"><span style=\"font-size:22px\">🔥<\/span>\n   <div><b>Незавершённая тренировка<\/b><small>${sportName(d.sport)} · ${fmtDist(d.dist)} км · ${fmtDur(d.el)} — восстановить?<\/small><\/div>\n   <span class=\"arrow\">→<\/span><\/div>\n   <div style=\"display:flex;gap:8px;margin-bottom:6px\"><button class=\"btn ghost\" style=\"flex:1;padding:11px\"\n   onclick=\"event.stopPropagation();DB.draft=null;$('draftBanner').innerHTML='';toast('Черновик удалён')\">Удалить<\/button><\/div>`}\nfunction resumeDraft(){const d=DB.draft;if(!d)return;\n  Object.assign(T,{on:true,paused:false,sport:d.sport,indoor:d.indoor,demo:d.demo,pts:d.pts||[],\n    dist:d.dist,mov:d.mov,el:d.el,elev:d.elev,cal:d.cal,startT:Date.now()-(d.el||0)*1000,lastKm:d.lastKm||0,\n    maxSp:0,speeds:[],last:null,lock:false});\n  tmap=tmap||new TMap($('mapWrap'),$('mapCv'));tmap.pts=T.pts;tmap.follow=true;\n  $('trkSport').textContent=sportName(T.sport)+' · ВОССТАНОВЛЕНО';\n  $('trkState').textContent=T.indoor?'ЗАПИСЬ · БЕЗ GPS':'ИДЁТ ЗАПИСЬ';\n  $('ctlPause').textContent='⏸';\n  openOvl('scr-track');tickTimer();toast('Тренировка восстановлена ✓')}\n\n/* ================= ЭКРАНЫ ================= */\nfunction renderHome(){\n  const ws=DB.workouts,draft=checkDraft();\n  const totKm=ws.reduce((a,w)=>a+w.distM,0)/1000;\n  // серия дней\n  let streak=0;const days=new Set(ws.map(w=>new Date(w.startedAt).toDateString()));\n  for(let i=0;;i++){const d=new Date();d.setDate(d.getDate()-i);\n    if(days.has(d.toDateString()))streak++;else if(i>0)break;else if(!days.has(d.toDateString()))break}\n  $('homeStats').innerHTML=`\n    <div class=\"metric glass\"><i>ВСЕГО КМ<\/i><b class=\"mono\">${totKm.toFixed(1)}<\/b><\/div>\n    <div class=\"metric glass\"><i>ТРЕНИРОВОК<\/i><b class=\"mono\">${ws.length}<\/b><\/div>\n    <div class=\"metric glass\"><i>СЕРИЯ<\/i><b class=\"mono\" style=\"color:var(--gold)\">${streak} дн<\/b><\/div>`;\n  // недельный график\n  const cv=$('weekChart');cv.width=cv.clientWidth*devicePixelRatio;cv.height=86*devicePixelRatio;\n  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);\n  const weeks=[];for(let i=11;i>=0;i--){const s=new Date();s.setDate(s.getDate()-i*7-6);s.setHours(0,0,0,0);\n    const e=new Date(s);e.setDate(e.getDate()+7);\n    weeks.push(ws.filter(w=>{const d=new Date(w.startedAt);return d>=s&&d<e}).reduce((a,w)=>a+w.distM,0)/1000)}\n  const mx=Math.max(...weeks,1);\n  $('homeTrend').textContent=weeks[11]>=weeks[10]?`+${Math.round((weeks[11]-Math.max(weeks[10],.01))/Math.max(weeks[10],.01)*100)}%`:'';\n  ctx.clearRect(0,0,cv.clientWidth,86);\n  weeks.forEach((v,i)=>{const bw=cv.clientWidth/12-6,x=i*(bw+6)+3,bh=Math.max(4,v/mx*70);\n    ctx.fillStyle=i===11?'#3DF29B':'rgba(61,242,155,.35)';\n    ctx.beginPath();ctx.roundRect(x,80-bh,bw,bh,4);ctx.fill()});\n  // чипы видов спорта\n  $('sportChips').innerHTML=Object.entries(SPORTS).map(([k,[n,ic]])=>\n    `<span class=\"chip\" onclick=\"trackStart('${k}',${['treadmill','indoor_bike','elliptical','rowing'].includes(k)})\">${ic} ${n}<\/span>`).join('');\n  // инструменты (только реально работающие)\n  const tools=[['📅','Календарь',\"openOvl('scr-calendar')\"],['📈','Тренды',\"openOvl('scr-trends')\"],\n    ['🏅','Достижения',\"openOvl('scr-ach')\"],['🎯','Челленджи',\"openOvl('scr-chal')\"],\n    ['⏱','Интервалы',\"openOvl('scr-intervals')\"],['🔁','Импорт/Экспорт',\"openOvl('scr-io')\"],\n    ['👟','Снаряжение',\"openOvl('scr-gear')\"],['🛟','Безопасность',\"openOvl('scr-safety')\"]];\n  $('homeTools').innerHTML=tools.map(([ic,t,fn])=>\n    `<div class=\"fntile glass\" onclick=\"${fn}\"><div class=\"fi\">${ic}<\/div><b>${t}<\/b><\/div>`).join('');\n}\n\n/* ---------- функции (все рабочие) ---------- */\nconst FNCATS=[\n ['ТРЕНИРОВКИ',[\n   ['Интервалы','⏱','работа/отдых',\"openOvl('scr-intervals')\"],\n   ['3D-маршрут','🧭','облёт трека на карте',\"replay3d()\"],\n   ['Призрак','👻','гонка с лучшей попыткой',\"toast('Призрак включается автоматически во время GPS-тренировки')\"],\n ]],\n ['ДАННЫЕ',[\n   ['Импорт/Экспорт','🔁','GPX и копии',\"openOvl('scr-io')\"],\n   ['Снаряжение','👟','пробег кроссовок',\"openOvl('scr-gear')\"],\n ]],\n ['АНАЛИЗ',[\n   ['Календарь','📅','нагрузка по дням',\"openOvl('scr-calendar')\"],\n   ['Тренды','📈','динамика формы',\"openOvl('scr-trends')\"],\n   ['Достижения','🏅','награды и рекорды',\"openOvl('scr-ach')\"],\n ]],\n ['МОТИВАЦИЯ',[\n   ['Челленджи','🎯','свои цели',\"openOvl('scr-chal')\"],\n   ['Карточки','🎞','поделиться тренировкой',\"showTab('scr-created')\"],\n ]],\n ['ЗДОРОВЬЕ',[\n   ['Безопасность','🛟','SOS и локация',\"openOvl('scr-safety')\"],\n   ['Профиль','👤','вес и возраст для калорий',\"showTab('scr-profile')\"],\n ]]];\nfunction renderFn(){renderFnList('')}\nfunction renderFnList(q){q=q.toLowerCase();\n  $('fnList').innerHTML=FNCATS.map(([cat,items])=>{\n    const f=items.filter(i=>!q||i[0].toLowerCase().includes(q)||i[2].includes(q));\n    return f.length?`<div class=\"h-sec\">${cat}<\/div><div class=\"fgrid\">${\n      f.map(i=>`<div class=\"fntile glass\" onclick=\"${i[3]}\"><div class=\"fi\">${i[1]}<\/div><b>${i[0]}<\/b>\n      <div style=\"color:var(--dim);font-size:8.6px;margin-top:3px;line-height:1.25\">${i[2]}<\/div><\/div>`).join('')}<\/div>`:''\n  }).join('')||'<div class=\"empty\"><div class=\"ic\">🔍<\/div><b>Ничего не найдено<\/b><\/div>'}\n$('fnSearch').addEventListener('input',e=>renderFnList(e.target.value));\nfunction replay3d(){\n  const ws=DB.workouts.filter(w=>w.pts&&w.pts.length>5);\n  if(!ws.length)return toast('Нужна GPS-тренировка с треком');\n  dlg('Облёт маршрута','Карта пролетит по вашему треку. Запустить?',\n    [{label:'▶ Запустить облёт',fn:()=>{\n      const w=ws[0];openOvl('scr-track');Object.assign(T,{on:false,pts:w.pts,dist:w.distM,mov:w.movingSec,el:w.elapsedSec,cal:w.cal,elev:w.elevGain,speeds:[],sport:w.sport,paused:false});\n      tmap=tmap||new TMap($('mapWrap'),$('mapCv'));tmap.pts=w.pts;\n      // автооблёт: перебираем зум и центры\n      let i=0;const fly=setInterval(()=>{if(!$('scr-track').classList.contains('on')){clearInterval(fly);return}\n        i++;tmap.follow=i%2===0;tmap.z=15+(i%4);tmap.render()},1400);\n      $('trkState').textContent='ОБЛЁТ МАРШРУТА';$('trkSport').textContent='3D-облёт · '+w.name;\n      $('trkHud').innerHTML='<span class=\"hudpill acc\">КИНООБЛЁТ ТРЕКА<\/span>';\n    }},{label:'Отмена',ghost:1}])}\n\n/* ---------- история ---------- */\nlet histFilter='all';\nfunction renderHistory(){\n  const sports=[...new Set(DB.workouts.map(w=>w.sport))];\n  $('histChips').innerHTML=`<span class=\"chip ${histFilter==='all'?'on':''}\" onclick=\"histFilter='all';renderHistory()\">Все<\/span>`+\n    sports.map(s=>`<span class=\"chip ${histFilter===s?'on':''}\" onclick=\"histFilter='${s}';renderHistory()\">${sportIcon(s)} ${sportName(s)}<\/span>`).join('');\n  const list=DB.workouts.filter(w=>histFilter==='all'||w.sport===histFilter);\n  if(!list.length){$('histList').innerHTML=`<div class=\"empty\"><div class=\"ic\">🕘<\/div>\n    <b>Пока пусто<\/b><p>Начните первую тренировку — она появится здесь.<br>Все данные остаются в этом браузере.<\/p><\/div>`;return}\n  const groups={};list.forEach(w=>{const k=new Date(w.startedAt).toLocaleDateString('ru',{month:'long',year:'numeric'});\n    (groups[k]=groups[k]||[]).push(w)});\n  $('histList').innerHTML=Object.entries(groups).map(([m,items])=>\n    `<div class=\"month\">${m.toUpperCase()}<\/div>`+items.map(wcard).join('')).join('')}\nfunction wcard(w){return `<div class=\"wcard glass\" onclick=\"openDetail(${w.id})\">\n  <div class=\"wbadge\">${sportIcon(w.sport)}<\/div>\n  <div style=\"flex:1;min-width:0\"><div class=\"wn\">${w.name}${w.demo?' <span style=\"color:var(--gold);font-size:10px\">ДЕМО<\/span>':''}<\/div>\n  <div class=\"wd\">${new Date(w.startedAt).toLocaleDateString('ru',{day:'numeric',month:'short,'})} ${new Date(w.startedAt).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})}<\/div>\n  <div class=\"wm\"><b class=\"mono\">${fmtDist(w.distM)} км<\/b><span class=\"mono\">${fmtDur(w.movingSec)}<\/span><span class=\"mono\">${fmtPace(w.distM,w.movingSec)}/км<\/span><\/div><\/div>\n  <span class=\"arrow\">›<\/span><\/div>`}\n\nfunction openDetail(id){\n  const w=DB.workouts.find(x=>x.id===id);if(!w)return;\n  $('detailBody').innerHTML=`\n    <div style=\"text-align:center;margin:4px 0 12px\">\n      <div style=\"font-size:34px\">${sportIcon(w.sport)}<\/div>\n      <b style=\"font-size:16px\">${w.name}<\/b>\n      <div style=\"color:var(--dim);font-size:12px\">${new Date(w.startedAt).toLocaleString('ru',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}<\/div>\n    <\/div>\n    <div id=\"dMapWrap\" style=\"position:relative;border-radius:24px;overflow:hidden;height:220px;background:#0A0F0D\"><\/div>\n    <div class=\"mrow\" style=\"margin-top:12px\">\n      <div class=\"metric glass\"><i>ДИСТАНЦИЯ<\/i><b class=\"mono\">${fmtDist(w.distM)}<\/b><small>км<\/small><\/div>\n      <div class=\"metric glass\"><i>ВРЕМЯ<\/i><b class=\"mono\">${fmtDur(w.movingSec)}<\/b><\/div>\n      <div class=\"metric glass\"><i>ТЕМП<\/i><b class=\"mono\">${fmtPace(w.distM,w.movingSec)}<\/b><small>/км<\/small><\/div>\n      <div class=\"metric glass\"><i>КАЛОРИИ<\/i><b class=\"mono\">${w.cal}<\/b><\/div>\n    <\/div>\n    ${w.splits&&w.splits.length?`<div class=\"h-sec\">Круги<\/div>${w.splits.map(s=>\n      `<div class=\"split-row glass\"><span>Круг ${s.km}${s.partial?' (част.)':''}<\/span>\n       <b class=\"mono\" style=\"color:var(--mint)\">${fmtDur(s.sec)}<\/b><\/div>`).join('')}`:''}\n    <div style=\"display:grid;gap:9px;margin-top:16px\">\n      <button class=\"btn\" onclick=\"shareWorkout(${w.id})\">Поделиться<\/button>\n      <button class=\"btn ghost\" onclick=\"dlGpx(${w.id})\">⬇ Скачать GPX<\/button>\n      <button class=\"btn danger\" onclick=\"delWorkout(${w.id})\">Удалить<\/button>\n    <\/div>`;\n  openOvl('scr-detail');\n  // карта в деталях\n  setTimeout(()=>{const wrap=$('dMapWrap');\n    if(w.pts&&w.pts.length>1){const m=new TMap(wrap,document.createElement('canvas'));\n      m.cv.style.position='absolute';m.cv.style.inset='0';wrap.appendChild(m.cv);\n      const mz=document.createElement('div');mz.className='mz';\n      mz.innerHTML='<button>+<\/button><button>−<\/button>';\n      mz.children[0].onclick=()=>m.zoom(1);mz.children[1].onclick=()=>m.zoom(-1);wrap.appendChild(mz);\n      m.follow=false;m.pts=w.pts;m.render()}\n    else wrap.innerHTML='<div class=\"empty\" style=\"padding-top:70px\"><b>Нет GPS-трека<\/b><\/div>'},60);\n}\nfunction delWorkout(id){dlg('Удалить тренировку?','Действие необратимо.',\n  [{label:'Удалить',danger:1,fn:()=>{DB.workouts=DB.workouts.filter(w=>w.id!==id);\n    closeOvl('scr-detail');renderHistory();toast('Удалено')}},{label:'Отмена',ghost:1}])}\nfunction shareWorkout(id){const w=DB.workouts.find(x=>x.id===id);if(!w)return;\n  const txt=`${sportIcon(w.sport)} ${w.name} — VERRO\\n${fmtDist(w.distM)} км · ${fmtDur(w.movingSec)} · темп ${fmtPace(w.distM,w.movingSec)}/км · ${w.cal} ккал`;\n  if(navigator.share)navigator.share({text:txt}).catch(()=>{});\n  else{navigator.clipboard&&navigator.clipboard.writeText(txt);toast('Скопировано в буфер ✓')}}\nfunction gpxOf(w){return `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gpx version=\"1.1\" creator=\"VERRO Web\"><trk><name>${w.name}<\/name><trkseg>${\n  (w.pts||[]).map(p=>`<trkpt lat=\"${p[0]}\" lon=\"${p[1]}\"><ele>${p[2]||0}<\/ele><time>${new Date(p[3]).toISOString()}<\/time><\/trkpt>`).join('')\n}<\/trkseg><\/trk><\/gpx>`}\nfunction dlGpx(id){const w=DB.workouts.find(x=>x.id===id);if(!w)return;\n  const b=new Blob([gpxOf(w)],{type:'application/gpx+xml'}),a=document.createElement('a');\n  a.href=URL.createObjectURL(b);a.download=`verro-${w.id}.gpx`;a.click();toast('GPX сохранён ✓')}\nfunction exportAllGpx(){DB.workouts.forEach((w,i)=>setTimeout(()=>dlGpx(w.id),i*400));\n  toast(`Экспортирую ${DB.workouts.length} GPX…`)}\n\n/* ---------- созданное ---------- */\nfunction renderCreated(){const ws=DB.workouts.slice(0,12);\n  $('createdList').innerHTML=ws.length?ws.map(w=>`\n   <div class=\"glass\" style=\"padding:18px;border-radius:26px;margin-bottom:12px;\n     background:linear-gradient(150deg,rgba(61,242,155,.14),rgba(10,14,12,.9) 60%)\">\n     <div style=\"font-size:26px;margin-bottom:6px\">${sportIcon(w.sport)}<\/div>\n     <b style=\"font-size:15px\">${w.name}<\/b>\n     <div class=\"mono\" style=\"font-size:27px;font-weight:800;margin:10px 0 2px\">${fmtDist(w.distM)}<small style=\"font-size:12px;color:var(--dim)\"> км<\/small><\/div>\n     <div style=\"color:var(--muted);font-size:12px\">${fmtDur(w.movingSec)} · ${fmtPace(w.distM,w.movingSec)}/км · 🔥 ${w.cal} ккал<\/div>\n     <div class=\"btnrow\" style=\"margin-top:12px\">\n       <button class=\"btn ghost\" style=\"padding:11px\" onclick=\"shareWorkout(${w.id})\">Поделиться<\/button>\n       <button class=\"btn ghost\" style=\"padding:11px\" onclick=\"dlGpx(${w.id})\">GPX<\/button><\/div>\n   <\/div>`).join(''):`<div class=\"empty\"><div class=\"ic\">🎞<\/div><b>Карточек пока нет<\/b>\n     <p>Запишите тренировку — здесь появятся красивые карточки для друзей.<\/p><\/div>`}\n\n/* ---------- календарь / тренды / достижения ---------- */\nfunction openOvlRender(id,fn){openOvl(id);fn()}\nfunction renderSimple(openId,bodyId,html){openOvl(openId);$(bodyId).innerHTML=html}\nfunction calRender(){const ws=DB.workouts;\n  const map={};ws.forEach(w=>{const d=new Date(w.startedAt),k=d.getFullYear()+'-'+d.getMonth();\n    (map[k]=map[k]||[]).push(w)});\n  $('calBody').innerHTML=Object.entries(map).map(([k,items])=>{\n    const[y,m]=k.split('-');const first=new Date(y,+m,1),dim=new Date(y,+m+1,0).getDate();\n    const per={};items.forEach(w=>{const d=new Date(w.startedAt).getDate();per[d]=(per[d]||0)+w.distM/1000});\n    let cells='';for(let i=0;i<first.getDay();i++)cells+='<div><\/div>';\n    for(let d=1;d<=dim;d++){const km=per[d]||0;\n      cells+=`<div style=\"aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;\n        font-size:11px;background:${km?`rgba(61,242,155,${Math.min(.12+km/12,.75)})`:'rgba(255,255,255,.04)'}\">\n        <b>${d}<\/b>${km?`<small class=\"mono\" style=\"font-size:8px;color:#012517;font-weight:800\">${km.toFixed(0)}<\/small>`:''}<\/div>`}\n    return `<div class=\"h-sec\">${first.toLocaleDateString('ru',{month:'long',year:'numeric'})}<\/div>\n      <div style=\"display:grid;grid-template-columns:repeat(7,1fr);gap:5px\">${cells}<\/div>`}).join('')}\nfunction trendsRender(){const ws=DB.workouts;\n  if(!ws.length){$('trendsBody').innerHTML='<div class=\"empty\"><div class=\"ic\">📈<\/div><b>Нет данных<\/b><\/div>';return}\n  const last10=ws.slice(0,10);\n  const paces=last10.map(w=>w.distM>200?w.movingSec/w.distM*1000:0).filter(Boolean);\n  const best=Math.min(...paces),first=Math.max(...paces);\n  $('trendsBody').innerHTML=`\n    <div class=\"mrow3\">\n      <div class=\"metric glass\"><i>ЗА 10 ТРЕНИРОВОК<\/i><b class=\"mono\">${(last10.reduce((a,w)=>a+w.distM,0)/1000).toFixed(1)}<\/b><small>км<\/small><\/div>\n      <div class=\"metric glass\"><i>ЛУЧШИЙ ТЕМП<\/i><b class=\"mono\" style=\"color:var(--mint)\">${fmtDur(best||0)}<\/b><small>/км<\/small><\/div>\n      <div class=\"metric glass\"><i>ДИНАМИКА<\/i><b class=\"mono\" style=\"color:${first<=best?'var(--mint)':'var(--gold)'}\">${first&&best?fmtDur(first-best):'—'}<\/b><\/div>\n    <\/div>\n    <div class=\"h-sec\">Темп по тренировкам<\/div>\n    ${last10.map(w=>`<div class=\"stat-line glass\"><span>${new Date(w.startedAt).toLocaleDateString('ru',{day:'numeric',month:'short'})} · ${fmtDist(w.distM)} км<\/span>\n      <b class=\"mono\">${fmtPace(w.distM,w.movingSec)}/км<\/b><\/div>`).join('')}`}\nfunction achRender(){const ws=DB.workouts,tot=ws.reduce((a,w)=>a+w.distM,0)/1000;\n  const A=[['🎯','Первая тренировка',ws.length>=1],['🔟','10 тренировок',ws.length>=10],\n    ['🏅','25 тренировок',ws.length>=25],['🌍','Марафон по сумме (42 км)',tot>=42.2],\n    ['💯','100 км по сумме',tot>=100],['🔥','Серия 3 дня',(function(){const s=new Set(ws.map(w=>new Date(w.startedAt).toDateString()));\n      for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);if(!s.has(d.toDateString()))return i>=3}return false})()]];\n  $('achBody').innerHTML=A.map(([ic,t,ok])=>`<div class=\"stat-line glass\" style=\"opacity:${ok?1:.45}\">\n    <span>${ic} ${t}<\/span><b>${ok?'✓ получено':'🔒'}<\/b><\/div>`).join('')}\nfunction chalRender(){\n  const chs=DB.challenges;\n  const prog=c=>{const ws=DB.workouts.filter(w=>new Date(w.startedAt)>=new Date(c.created));\n    return c.type==='km'?ws.reduce((a,w)=>a+w.distM,0)/1000\n      :new Set(ws.map(w=>new Date(w.startedAt).toDateString())).size};\n  $('chalBody').innerHTML=`<div class=\"glass\" style=\"padding:14px;margin-bottom:12px\">\n      <input class=\"tf\" id=\"chTitle\" placeholder=\"Название (30 км за месяц)\">\n      <div class=\"mrow\" style=\"margin-top:9px\">\n        <select class=\"tf\" id=\"chType\"><option value=\"km\">километры<\/option><option value=\"days\">дней подряд<\/option><\/select>\n        <input class=\"tf\" id=\"chTarget\" type=\"number\" placeholder=\"цель\" value=\"30\">\n      <\/div>\n      <button class=\"btn\" style=\"margin-top:9px\" onclick=\"addChal()\">Создать челлендж<\/button><\/div>`+\n    (chs.length?chs.map((c,i)=>{const p=Math.min(100,prog(c)/c.target*100);\n      return `<div class=\"glass\" style=\"padding:15px;border-radius:22px;margin-bottom:9px\">\n      <div style=\"display:flex;justify-content:space-between\"><b>${c.title}<\/b>\n      <span class=\"mono\" style=\"color:var(--mint)\">${prog(c).toFixed(1)} / ${c.target}${c.type==='km'?' км':' дн'}<\/span><\/div>\n      <div style=\"height:8px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:9px;overflow:hidden\">\n        <div style=\"height:100%;width:${p}%;background:var(--grad);border-radius:6px\"><\/div><\/div>\n      <button class=\"btn ghost\" style=\"margin-top:9px;padding:9px\" onclick=\"delChal(${i})\">Удалить<\/button><\/div>`}).join('')\n    :'<p style=\"color:var(--dim);font-size:12px;text-align:center\">Создайте первую цель<\/p>')}\nfunction addChal(){const t=$('chTitle').value.trim()||'Моя цель';\n  const chs=DB.challenges;chs.unshift({title:t,type:$('chType').value,target:+$('chTarget').value||10,\n    created:new Date().toISOString()});DB.challenges=chs;chalRender();toast('Челлендж создан ✓')}\nfunction delChal(i){const chs=DB.challenges;chs.splice(i,1);DB.challenges=chs;chalRender()}\nfunction ioRender(){const ws=DB.workouts;\n  $('ioBody').innerHTML=`<div class=\"h-sec\">Экспорт<\/div>\n    <div style=\"display:grid;gap:9px\">\n      <button class=\"btn\" onclick=\"dlJson()\">⬇ Резервная копия (JSON)<\/button>\n      <button class=\"btn ghost\" onclick=\"exportAllGpx()\">⬇ Все GPX (${ws.length})<\/button><\/div>\n    <div class=\"h-sec\">Импорт<\/div>\n    <div class=\"glass\" style=\"padding:16px\"><input type=\"file\" id=\"impFile\" accept=\".json\" style=\"color:var(--dim);font-size:12px\">\n    <button class=\"btn ghost\" style=\"margin-top:10px\" onclick=\"impJson()\">Восстановить из JSON<\/button><\/div>`}\nfunction dlJson(){const b=new Blob([JSON.stringify({workouts:DB.workouts,profile:DB.profile,\n  challenges:DB.challenges,gear:DB.gear},null,1)],{type:'application/json'});\n  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='verro-backup.json';a.click();toast('Копия сохранена ✓')}\nfunction impJson(){const f=$('impFile').files[0];if(!f)return toast('Выберите файл');\n  const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);\n    if(d.workouts)DB.workouts=d.workouts;if(d.profile)DB.profile=d.profile;\n    toast('Восстановлено ✓');renderHome()}catch(e){toast('Файл повреждён')}};r.readAsText(f)}\nfunction gearRender(){const g=DB.gear;\n  $('gearBody').innerHTML=`<div class=\"glass\" style=\"padding:14px;margin-bottom:12px\">\n    <input class=\"tf\" id=\"gearName\" placeholder=\"Название (Asics Nimbus)\">\n    <button class=\"btn\" style=\"margin-top:9px\" onclick=\"addGear()\">Добавить<\/button><\/div>`+\n    (g.length?g.map((it,i)=>`<div class=\"stat-line glass\"><span>👟 ${it.name}<\/span>\n      <b class=\"mono\">${(DB.workouts.filter(w=>['run','treadmill'].includes(w.sport)&&new Date(w.startedAt)>=new Date(it.created))\n        .reduce((a,w)=>a+w.distM,0)/1000).toFixed(1)} км<\/b><\/div>`).join(''):\n    '<p style=\"color:var(--dim);font-size:12px;text-align:center\">Добавьте кроссовки — VERRO считает их пробег<\/p>')}\nfunction addGear(){const g=DB.gear;g.push({name:$('gearName').value.trim()||'Кроссовки',created:new Date().toISOString()});\n  DB.gear=g;gearRender();toast('Добавлено ✓')}\nfunction sosSend(){const ph=$('sosPhone').value.replace(/\\D/g,'');\n  navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{\n    const u=`https://maps.google.com/?q=${p.coords.latitude.toFixed(5)},${p.coords.longitude.toFixed(5)}`;\n    if(ph)location.href=`sms:${ph}?&body=${encodeURIComponent('VERRO SOS: мне нужна помощь. '+u)}`;\n    else sosShareLoc(u)},()=>toast('Нет геолокации — разрешите доступ'),{timeout:8000})}\nfunction sosShare(){navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{\n  sosShareLoc(`https://maps.google.com/?q=${p.coords.latitude.toFixed(5)},${p.coords.longitude.toFixed(5)}`)},\n  ()=>toast('Нет геолокации'),{timeout:8000})}\nfunction sosShareLoc(u){if(navigator.share)navigator.share({title:'Моя локация VERRO',url:u}).catch(()=>{});\n  else{navigator.clipboard&&navigator.clipboard.writeText(u);toast('Ссылка скопирована ✓')}}\n\n/* ---------- профиль ---------- */\nlet _sex='m';\nfunction setSex(s){_sex=s;$('sexM').classList.toggle('on',s==='m');$('sexF').classList.toggle('on',s==='f')}\nfunction saveProfile(){DB.profile={name:$('pName').value.trim(),weight:+$('pWeight').value||75,\n  birth:+$('pBirth').value||1995,sex:_sex};toast('Профиль сохранён ✓')}\nfunction loadProfile(){const p=DB.profile;if(p.name)$('pName').value=p.name;\n  if(p.weight)$('pWeight').value=p.weight;if(p.birth)$('pBirth').value=p.birth;\n  _sex=p.sex||'m';setSex(_sex);$('profCount').textContent=DB.workouts.length}\nfunction wipeAll(){dlg('Удалить ВСЕ данные?','Тренировки, профиль, челленджи — необратимо.',\n  [{label:'Удалить всё',danger:1,fn:()=>{['verro_w','verro_draft','verro_p','verro_c','verro_g'].forEach(k=>localStorage.removeItem(k));\n    renderHome();loadProfile();toast('Все данные удалены')}},{label:'Отмена',ghost:1}])}\n\n/* ---------- интервалы ---------- */\nlet ivT=null,ivLeft=0,ivRound=0,ivPhase='work';\nfunction ivToggle(){if(ivT){ivStop();$('ivBtn').textContent='▶ Старт';return}\n  ivRound=1;ivPhase='work';ivLeft=(+$('ivWork').value||3)*60;\n  $('ivBtn').textContent='■ Стоп';ivTickStart();beep(980)}\nfunction ivTickStart(){ivT=setInterval(()=>{ivLeft--;\n  if(ivLeft<=0){beep(ivPhase==='work'?660:980,.25);\n    if(ivPhase==='work'){ivPhase='rest';ivLeft=(+$('ivRest').value||1)*60;speak('Отдых')}\n    else{ivRound++;const max=+$('ivRounds').value||6;\n      if(ivRound>max){ivStop();speak('Интервальная тренировка завершена. Отличная работа!');\n        $('ivPhase').textContent='ГОТОВ';$('ivRoundInfo').textContent='';return}\n      ivPhase='work';ivLeft=(+$('ivWork').value||3)*60;speak(`Раунд ${ivRound}. Поехали`)}}\n  const m=ivLeft/60|0,s=ivLeft%60;\n  $('ivClock').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;\n  $('ivPhase').textContent=ivPhase==='work'?'РАБОТА':'ОТДЫХ';\n  $('ivRoundInfo').textContent=`Раунд ${ivRound} из ${+$('ivRounds').value||6}`},1000)}\nfunction ivStop(){clearInterval(ivT);ivT=null;\n  $('ivClock').textContent=String(+$('ivWork').value||3).padStart(2,'0')+':00';\n  $('ivPhase').textContent='ГОТОВ';$('ivRoundInfo').textContent='';$('ivBtn').textContent='▶ Старт'}\n\n/* ---------- связка оверлеев с рендерами ---------- */\nconst _openOvl=openOvl;\nopenOvl=function(id){_openOvl(id);\n  ({'scr-calendar':calRender,'scr-trends':trendsRender,'scr-ach':achRender,\n    'scr-chal':chalRender,'scr-io':ioRender,'scr-gear':gearRender}[id]||(()=>{}))()}\n\n/* ---------- загрузка ---------- */\naddEventListener('load',()=>{\n  renderHome();loadProfile();\n  // восстановление черновика\n  checkDraft();\n  setTimeout(()=>{$('splash').classList.add('off');\n    if(DB.draft)toast('Есть незавершённая тренировка — можно восстановить')},1400);\n});\n<\/script>\n<\/body>\n<\/html>\n";
+function openApp(){
+  const f=document.getElementById('appFrame');
+  f.srcdoc=VR_APP_DOC;
+  document.getElementById('appHost').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function closeApp(){
+  document.getElementById('appHost').classList.remove('on');
+  document.getElementById('appFrame').srcdoc='';
+  document.body.style.overflow='';
+}
+</script>
+
+<script type="text/plain" id="clFallback">
+4.1.0 (10) — Чистота и точность
+- Автопауза полностью удалена: таймер и дистанция идут без остановок
+- Убраны заглушки: во «Все функции» попали только реально работающие экраны
+- Уведомление тренировки в тёмном графите вместо зелёного
+- Мелкие исправления стабильности
+
+4.0.0 (9) — Карта, история и 3D: всё работает
+- Настоящая интерактивная карта: живой GPS-трек прямо на экране тренировки и в анализе
+- Экран «История» больше не падает — работает с русскими датами
+- Исправлен 3D-реплей: защита от сбоев, понятные сообщения вместо вылетов
+- Новая нейтральная палитра: тёмный графит + мятный акцент вместо сплошной зелени
+- Больше скруглений: кнопки-пилюли, стеклянные чипы и карточки
+- Сохранённые тренировки сразу появляются в истории
+
+3.2.0 (8) — Стеклянный редизайн
+- Новый интерфейс Liquid Glass: стеклянные панели с бликами и светлыми гранями
+- Глубокий чёрно-изумрудный фон, как на сайте
+- Кнопки-пилюли, стеклянные карточки и переключатели
+- Все экраны перерисованы в едином стеклянном стиле
+
+3.1.0 (7) — Антикраш и сохранение всего
+- Исправлены причины вылетов: защита всех опасных мест приложения
+- Каждая тренировка сохраняется — даже короткая или без GPS
+- Автосохранение черновика каждые 30 секунд: если приложение закроется само — тренировка восстановится при запуске
+- Стеклянная навигация и панель кнопок (эффект blur)
+- Вкладка «Все функции»: каталог всех 37 функций с поиском
+- Кнопки «Пауза/Стоп» в уведомлении управляют тренировкой
+- Надёжный фоновый режим: тренировка живёт при выключенном экране и свайпе приложения
+
+3.0.0 (6) — Финальная версия
+- Исправлен запуск тренировок: восстановлена связь приложения с сервисом трекинга
+- Новая вкладка «Все функции»: все 37 функций с поиском и описаниями
+- Надёжная работа в фоне: тренировка в помещении тоже живёт в foreground-сервисе
+- Приложение больше не падает, если свайпнуть его из недавних
+- Кнопки «Пауза» и «Стоп» в уведомлении реально управляют тренировкой
+- Стеклянный стиль: blur-эффекты в навигации и на экране тренировки
+- Исправлен блок, перекрывавший стартовый экран
+- Ускоренный запуск: сервисы загружаются параллельно
+
+2.0.1 (5) — GPS телефона
+- Подсказка, если геолокация выключена: «Опустите шторку и включите GPS»
+- Бейдж «🛰 GPS телефона» с живой точностью в метрах
+- Кнопка «Настройки» в диалоге ошибки GPS
+- GPS-трек берётся со встроенного приёмника телефона, без внешних трекеров
+
+2.0.0 (4) — Новый стиль
+- Премиальный тёмно-изумрудный интерфейс: стекло и мягкие свечения
+- Новый стартовый экран с огоньком
+
+1.2.0 (3) — Режим «в помещении»
+- Тренировка без GPS: таймер, калории по пульсу, блютуз-датчики
+
+1.1.0 (2) — Датчики и права
+- Пульсометры и велокаденс по блютуз
+- Экран, всегда активный во время тренировки
+
+1.0.0 (1) — Первый релиз
+- GPS-трекинг с фильтром Калмана, история, челленджи, 3D-реплеи
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a419e39498f52945',t:'MTc5MDUwNTYxMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
